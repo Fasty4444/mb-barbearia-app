@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body{
+  background: radial-gradient(circle at top, #1a1a1a, #000000);
+  color:white;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* CALENDÁRIO */
+
+.react-calendar {
+  background: #18181b;
+  border: none;
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+  width: 320px;
+}
+
+/* CALENDÁRIO DARK MODE */
+
+.react-calendar {
+  background: #18181b !important;
+  border: none !important;
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+}
+
+.react-calendar__navigation button {
+  color: white !important;
+  font-weight: bold;
+}
+
+.react-calendar__navigation button:hover {
+  background: #27272a !important;
+  border-radius: 8px;
+}
+
+.react-calendar__tile {
+  background: transparent !important;
+  border-radius: 10px;
+  padding: 10px;
+  transition: all 0.2s;
+  color: white;
+}
+
+.react-calendar__tile:hover {
+  background: #27272a !important;
+}
+
+.react-calendar__tile--active {
+  background: #eab308 !important;
+  color: black !important;
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: #f87171 !important;
+}
+
+.react-calendar__tile:disabled {
+  color: #52525b !important;
+}
+
+.react-calendar__month-view__weekdays {
+  color: #a1a1aa;
+}
