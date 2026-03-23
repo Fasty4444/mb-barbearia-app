@@ -86,10 +86,15 @@ buscarCliente()
 /* ================= VALIDAÇÕES ================= */
 
 function handleTelefone(e){
-let valor = e.target.value.replace(/\D/g, "")
-if(valor.length <= 11){
-setTelefone(valor)
-}
+  let valor = e.target.value
+
+  // remove tudo que não for número
+  valor = valor.replace(/\D/g, "")
+
+  // limita a 11 dígitos
+  if(valor.length > 11) return
+
+  setTelefone(valor)
 }
 
 function handleNome(e){
@@ -115,6 +120,11 @@ setMostrarModal(true)
 /* ================= SALVAR ================= */
 
 async function confirmarAgendamento(){
+  
+if (!telefone || telefone.length !== 11) {
+  alert("Digite um telefone válido com DDD (11 dígitos)")
+  return
+}
 
 try{
 
@@ -246,14 +256,13 @@ Nas próximas vezes, basta informar o telefone que seus dados serão preenchidos
 
 <input
   type="tel"
-  name="tel"
+  inputMode="numeric"
+  pattern="[0-9]*"
   autoComplete="tel"
-  inputMode="tel"
-
-  placeholder="Telefone Ex: 6799999999"
+  placeholder="DDD + número (67999999999)"
   value={telefone}
   onChange={handleTelefone}
-
+  maxLength={11}
   className="w-full p-4 mb-4 bg-zinc-900 rounded-xl"
 />
 
