@@ -25,6 +25,22 @@ function criarDataLocal(dataString){
   return new Date(ano, mes - 1, dia)
 }
 
+/* ================= FUNÇÃO trava hora passada ================= */
+function horarioPassado(data, horario){
+  const agora = new Date()
+
+  // quebra a data (YYYY-MM-DD)
+  const [ano, mes, dia] = data.split("-")
+
+  // cria data LOCAL (importante)
+  const dataSelecionada = new Date(ano, mes - 1, dia)
+
+  const [hora, minuto] = horario.split(":")
+  dataSelecionada.setHours(hora, minuto, 0, 0)
+
+  return dataSelecionada < agora
+}
+
 
 /* ================= VALIDAÇÃO ================= */
 
@@ -295,29 +311,36 @@ Todos os horários estão ocupados
 
 <div className="grid grid-cols-3 gap-4">
 
-{horarios.map((hora)=>(
-<motion.button
-key={hora}
-whileTap={{scale:0.9}}
+{horarios.map((hora) => {
+  const bloqueado = diaBloqueado || horarioPassado(date, hora)
 
-onClick={()=>{
-  if(diaBloqueado) return
+  return (
+    <motion.button
+      key={hora}
+      whileTap={{ scale: 0.9 }}
+      disabled={bloqueado}
+      onClick={() => {
+        if (bloqueado) return
 
-  navigate("/cliente", {
-    state:{
-      servico,
-      barbeiro,
-      data: date,
-      horario: hora
-    }
-  })
-}}
-
-className="p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-yellow-500 transition"
->
-{hora}
-</motion.button>
-))}
+        navigate("/cliente", {
+          state: {
+            servico,
+            barbeiro,
+            data: date,
+            horario: hora
+          }
+        })
+      }}
+      className={`p-4 rounded-xl border transition ${
+        bloqueado
+          ? "bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed"
+          : "bg-zinc-900 border-zinc-800 hover:border-yellow-500"
+      }`}
+    >
+      {hora}
+    </motion.button>
+  )
+})}
 
 </div>
 

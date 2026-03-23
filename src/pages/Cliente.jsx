@@ -245,10 +245,16 @@ Nas próximas vezes, basta informar o telefone que seus dados serão preenchidos
 {/* TELEFONE */}
 
 <input
-placeholder="Telefone Ex: 6799999999"
-value={telefone}
-onChange={handleTelefone}
-className="w-full p-4 mb-4 bg-zinc-900 rounded-xl"
+  type="tel"
+  name="tel"
+  autoComplete="tel"
+  inputMode="tel"
+
+  placeholder="Telefone Ex: 6799999999"
+  value={telefone}
+  onChange={handleTelefone}
+
+  className="w-full p-4 mb-4 bg-zinc-900 rounded-xl"
 />
 
 
