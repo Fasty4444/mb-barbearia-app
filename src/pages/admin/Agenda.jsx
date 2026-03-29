@@ -8,6 +8,48 @@ function formatarDataLocal(data) {
   return `${ano}-${mes}-${dia}`
 }
 
+function formatarDataHoraPush(valor) {
+  if (!valor) return ""
+
+  const data = new Date(valor)
+
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function getPushInfo(agendamento) {
+  if (!agendamento) {
+    return {
+      label: "Push não enviado",
+      classe: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+    }
+  }
+
+  if (agendamento.push_status === "erro") {
+    return {
+      label: "Erro no push",
+      classe: "bg-red-500/15 text-red-400 border-red-500/30",
+    }
+  }
+
+  if (agendamento.push_lembrete_enviado || agendamento.push_status === "enviado") {
+    return {
+      label: "Push enviado",
+      classe: "bg-green-500/15 text-green-400 border-green-500/30",
+    }
+  }
+
+  return {
+    label: "Push não enviado",
+    classe: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+  }
+}
+
 export default function Agenda() {
   const [agenda, setAgenda] = useState([])
   const [barbeiros, setBarbeiros] = useState([])
@@ -51,6 +93,10 @@ export default function Agenda() {
         id,
         horario,
         status,
+        push_lembrete_enviado,
+        push_lembrete_enviado_em,
+        push_status,
+        push_erro,
         clientes(nome),
         servicos(nome)
       `)
@@ -160,6 +206,7 @@ export default function Agenda() {
           })
           .map((item, index) => {
             const ag = item.agendamento
+            const pushInfo = getPushInfo(ag)
 
             return (
               <div
@@ -192,6 +239,26 @@ export default function Agenda() {
                           Cancelado
                         </div>
                       )}
+
+                      <div className="mt-3 space-y-2">
+                        <div
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs border ${pushInfo.classe}`}
+                        >
+                          {pushInfo.label}
+                        </div>
+
+                        {ag.push_lembrete_enviado_em && (
+                          <p className="text-xs mt-1 opacity-80">
+                            Enviado em: {formatarDataHoraPush(ag.push_lembrete_enviado_em)}
+                          </p>
+                        )}
+
+                        {ag.push_status === "erro" && ag.push_erro && (
+                          <p className="text-xs mt-1 break-words">
+                            Erro: {ag.push_erro}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {ag.status !== "cancelado" && (

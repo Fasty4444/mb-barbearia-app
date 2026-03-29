@@ -21,6 +21,7 @@ import Funcionamento from "./pages/admin/Funcionamento"
 import Feriados from "./pages/admin/Feriados"
 import Caixa from "./pages/admin/Caixa"
 import { initOneSignal } from "./lib/onesignal"
+import ConfigPush from "./pages/admin/ConfigPush"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -105,6 +106,15 @@ function App() {
             </AdminRoute>
           }
         />
+
+        <Route
+  path="/admin/config-push"
+  element={
+    <AdminRoute>
+      <ConfigPush />
+    </AdminRoute>
+  }
+/>
 
         <Route
           path="/admin/feriados"

@@ -49,6 +49,41 @@ function formatarDataBR(data) {
   return `${dia}/${mes}/${ano}`
 }
 
+function formatarDataHoraPush(valor) {
+  if (!valor) return ""
+
+  const data = new Date(valor)
+
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function getPushInfo(item) {
+  if (item.push_status === "erro") {
+    return {
+      label: "Erro no push",
+      classe: "bg-red-500/15 text-red-400 border-red-500/30",
+    }
+  }
+
+  if (item.push_lembrete_enviado || item.push_status === "enviado") {
+    return {
+      label: "Push enviado",
+      classe: "bg-green-500/15 text-green-400 border-green-500/30",
+    }
+  }
+
+  return {
+    label: "Push não enviado",
+    classe: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
+  }
+}
+
 function nomesMeses() {
   return [
     "Janeiro",
@@ -449,6 +484,10 @@ export default function Admin() {
         horario,
         status,
         lembrete_enviado,
+        push_lembrete_enviado,
+        push_lembrete_enviado_em,
+        push_status,
+        push_erro,
         cliente_id,
         servico_id,
         barbeiro_id,
@@ -486,6 +525,10 @@ export default function Admin() {
           horario,
           status,
           lembrete_enviado,
+          push_lembrete_enviado,
+          push_lembrete_enviado_em,
+          push_status,
+          push_erro,
           cliente_id,
           servico_id,
           barbeiro_id,
@@ -895,6 +938,8 @@ ${linkCancelar}`
                   ? "border-orange-500"
                   : "border-zinc-800"
 
+              const pushInfo = getPushInfo(item)
+
               return (
                 <div
                   key={item.id}
@@ -914,6 +959,26 @@ ${linkCancelar}`
                           {item.status_pagamento === "pago" ? "Pago" : "Pendente"}
                         </span>
                       </p>
+
+                      <div className="mt-3 space-y-2">
+                        <div
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs border ${pushInfo.classe}`}
+                        >
+                          {pushInfo.label}
+                        </div>
+
+                        {item.push_lembrete_enviado_em && (
+                          <p className="text-xs text-zinc-400">
+                            Enviado em: {formatarDataHoraPush(item.push_lembrete_enviado_em)}
+                          </p>
+                        )}
+
+                        {item.push_status === "erro" && item.push_erro && (
+                          <p className="text-xs text-red-400 break-words">
+                            Erro: {item.push_erro}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="text-left md:text-right">
@@ -1238,6 +1303,8 @@ ${linkCancelar}`
                         ? "border-red-500"
                         : "border-zinc-800"
 
+                    const pushInfo = getPushInfo(item)
+
                     return (
                       <motion.div
                         key={item.id}
@@ -1263,6 +1330,26 @@ ${linkCancelar}`
                               {item.status_pagamento === "pago" ? "Pago" : "Pendente"}
                             </span>
                           </p>
+
+                          <div className="mt-3 space-y-2">
+                            <div
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs border ${pushInfo.classe}`}
+                            >
+                              {pushInfo.label}
+                            </div>
+
+                            {item.push_lembrete_enviado_em && (
+                              <p className="text-xs text-zinc-400">
+                                Enviado em: {formatarDataHoraPush(item.push_lembrete_enviado_em)}
+                              </p>
+                            )}
+
+                            {item.push_status === "erro" && item.push_erro && (
+                              <p className="text-xs text-red-400 break-words">
+                                Erro: {item.push_erro}
+                              </p>
+                            )}
+                          </div>
                           </div>
 
                           <div className="text-right">

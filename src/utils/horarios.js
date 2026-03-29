@@ -22,7 +22,7 @@ export async function obterHorariosPorData(data){
     .from("horarios_funcionamento")
     .select("*")
     .eq("dia_semana", diaSemana)
-    .single()
+    .maybeSingle()
 
   if(!config || !config.ativo){
     return []
