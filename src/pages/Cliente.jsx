@@ -207,15 +207,17 @@ const agendamentoId = novoAgendamento.id
 localStorage.setItem("cliente_nome", nome)
 localStorage.setItem("cliente_telefone", telefone)
 
-try {
-  await vincularClienteOneSignal(`cliente-${cliente.id}`)
-  await pedirPermissaoPush()
-} catch (e) {
-  console.log("OneSignal ainda não autorizado ou indisponível:", e)
-}
-
 alert("Agendamento realizado com sucesso! 💈")
 navigate("/")
+
+setTimeout(async () => {
+  try {
+    await vincularClienteOneSignal(`cliente-${cliente.id}`)
+    await pedirPermissaoPush()
+  } catch (e) {
+    console.log("OneSignal ainda não autorizado ou indisponível:", e)
+  }
+}, 300)
 
 
 }catch(err){
@@ -364,7 +366,12 @@ Editar
 
 <button
 onClick={confirmarAgendamento}
-className="flex-1 bg-yellow-500 text-black py-2 rounded"
+disabled={salvando}
+className={`flex-1 py-2 rounded ${
+  salvando
+    ? "bg-yellow-700 text-black opacity-70 cursor-not-allowed"
+    : "bg-yellow-500 text-black"
+}`}
 >
 {salvando ? "Salvando..." : "Confirmar"}
 </button>

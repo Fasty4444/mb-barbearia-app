@@ -47,7 +47,7 @@ export async function pedirPermissaoPush() {
 
     if (jaTemPermissao) return true;
 
-    await OneSignal.Notifications.requestPermission();
+   await OneSignal.Notifications.requestPermission({ fallbackToSettings: true });
     return OneSignal.Notifications.permission;
   } catch (error) {
     console.error("Erro ao pedir permissão push:", error);
