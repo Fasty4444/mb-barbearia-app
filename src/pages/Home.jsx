@@ -64,7 +64,7 @@ return(
         >
           📅 Agendar horário
         </button>
-
+{/* 
         <button
           onClick={()=>{
             setMenuAberto(false)
@@ -74,7 +74,7 @@ return(
         >
           ❌ Cancelar agendamento
         </button>
-
+*/}
 <button
   onClick={()=>{
     setMenuAberto(false)

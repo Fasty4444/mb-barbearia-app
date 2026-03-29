@@ -2,19 +2,19 @@ import { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { supabase } from "../lib/supabase"
 import { motion } from "framer-motion"
+import { pedirPermissaoPush, vincularClienteOneSignal } from "../lib/onesignal"
 
 export default function Cliente(){
 
 const navigate = useNavigate()
 const location = useLocation()
-
 const { servico, barbeiro, data, horario } = location.state || {}
-
 const [telefone, setTelefone] = useState("")
 const [nome, setNome] = useState("")
 const [mensagem, setMensagem] = useState("")
 const [mostrarModal, setMostrarModal] = useState(false)
 const [salvando, setSalvando] = useState(false)
+const [nascimento, setNascimento] = useState("")
 
 /* 🔥 NOVO ESTADO DO AVISO */
 const [mostrarAviso, setMostrarAviso] = useState(false)
@@ -74,6 +74,10 @@ return
 
 if(data){
 setNome(data.nome)
+}
+
+if(data?.nascimento){
+  setNascimento(data.nascimento)
 }
 
 }
@@ -139,12 +143,22 @@ const { data: clienteExistente } = await supabase
 .single()
 
 if(clienteExistente){
-cliente = clienteExistente
+
+  // atualiza nascimento se ele não tiver ainda
+  if(nascimento){
+    await supabase
+      .from("clientes")
+      .update({ nascimento })
+      .eq("id", clienteExistente.id)
+  }
+
+  cliente = clienteExistente
+
 }else{
 
 const { data: novoCliente, error } = await supabase
 .from("clientes")
-.insert([{ nome, telefone }])
+.insert([{ nome, telefone, nascimento: nascimento || null }])
 .select()
 .single()
 
@@ -192,6 +206,13 @@ const agendamentoId = novoAgendamento.id
 /* 🔥 SALVA NO DISPOSITIVO */
 localStorage.setItem("cliente_nome", nome)
 localStorage.setItem("cliente_telefone", telefone)
+
+try {
+  await vincularClienteOneSignal(`cliente-${cliente.id}`)
+  await pedirPermissaoPush()
+} catch (e) {
+  console.log("OneSignal ainda não autorizado ou indisponível:", e)
+}
 
 alert("Agendamento realizado com sucesso! 💈")
 navigate("/")
@@ -254,7 +275,7 @@ Nas próximas vezes, basta informar o telefone que seus dados serão preenchidos
 
 {/* TELEFONE */}
 
-<input
+<input  
   type="tel"
   inputMode="numeric"
   pattern="[0-9]*"
@@ -275,6 +296,23 @@ value={nome}
 onChange={handleNome}
 className="w-full p-4 mb-4 bg-zinc-900 rounded-xl"
 />
+
+{/* Data aniversário */}
+
+<div className="w-full flex items-center bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4 gap-2 mb-4">
+
+Nascimento :
+
+
+<input
+  type="date"
+  value={nascimento}
+  onChange={(e)=>setNascimento(e.target.value)}
+  className="bg-transparent outline-none text-white flex-1"
+
+/>
+
+</div>
 
 
 {/* MENSAGEM */}

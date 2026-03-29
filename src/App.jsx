@@ -16,40 +16,34 @@ import Cancelar from "./pages/Cancelar"
 import CancelarCliente from "./pages/CancelarCliente"
 import Historico from "./pages/Historico"
 import Perfil from "./pages/Perfil"
+import Servicos from "./pages/admin/Servicos"
+import Funcionamento from "./pages/admin/Funcionamento"
+import Feriados from "./pages/admin/Feriados"
+import Caixa from "./pages/admin/Caixa"
+import { initOneSignal } from "./lib/onesignal"
 
 function App() {
-
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    initOneSignal()
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setLoading(false)
-    }, 1500)
+    }, 600)
 
+    return () => clearTimeout(timer)
   }, [])
 
   if (loading) return <LoadingScreen />
 
   return (
     <BrowserRouter>
-
       <Routes>
-
         <Route path="/" element={<Home />} />
         <Route path="/agendamento" element={<Agendamento />} />
         <Route path="/barbeiro" element={<Barbeiro />} />
         <Route path="/data" element={<Data />} />
-        <Route 
-  path="/admin" 
-  element={
-    <AdminRoute>
-      <Admin />
-    </AdminRoute>
-  } 
-/>
-        <Route path="/admin/agenda" element={<Agenda />} />
-        <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/sucesso" element={<Sucesso />} />
         <Route path="/cliente" element={<Cliente />} />
         <Route path="/confirmar" element={<Confirmar />} />
@@ -58,8 +52,69 @@ function App() {
         <Route path="/historico" element={<Historico />} />
         <Route path="/perfil" element={<Perfil />} />
 
-      </Routes>
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
 
+        <Route
+          path="/admin/agenda"
+          element={
+            <AdminRoute>
+              <Agenda />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminRoute>
+              <Dashboard />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/servicos"
+          element={
+            <AdminRoute>
+              <Servicos />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/caixa"
+          element={
+            <AdminRoute>
+              <Caixa />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/funcionamento"
+          element={
+            <AdminRoute>
+              <Funcionamento />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/feriados"
+          element={
+            <AdminRoute>
+              <Feriados />
+            </AdminRoute>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   )
 }

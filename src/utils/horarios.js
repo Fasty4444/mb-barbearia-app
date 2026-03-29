@@ -1,68 +1,42 @@
-export function obterHorariosPorData(data){
+import { supabase } from "../lib/supabase"
 
-  function criarDataLocal(dataString){
-    const [ano, mes, dia] = dataString.split("-").map(Number)
-    return new Date(ano, mes - 1, dia)
+// converte "08:30" → minutos
+function horaParaMinutos(hora){
+  const [h, m] = hora.split(":").map(Number)
+  return h * 60 + m
+}
+
+// converte minutos → "08:30"
+function minutosParaHora(min){
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`
+}
+
+export async function obterHorariosPorData(data){
+
+  const dataObj = new Date(data + "T12:00:00")
+  const diaSemana = dataObj.getDay()
+
+  const { data: config } = await supabase
+    .from("horarios_funcionamento")
+    .select("*")
+    .eq("dia_semana", diaSemana)
+    .single()
+
+  if(!config || !config.ativo){
+    return []
   }
 
-  const dia = criarDataLocal(data).getDay()
+  const inicio = horaParaMinutos(config.hora_inicio)
+  const fim = horaParaMinutos(config.hora_fim)
+  const intervalo = config.intervalo
 
-  if(dia === 0) return []
+  const horarios = []
 
-  if(dia === 1){
-    return [
-      "09:00","09:35","10:10","10:45",
-      "11:20","11:55","12:30","13:05",
-      "13:40","14:15","14:50","15:25",
-      "16:00","16:35","17:10","17:45","18:20"
-    ]
+  for(let t = inicio; t < fim; t += intervalo){
+    horarios.push(minutosParaHora(t))
   }
 
-  if(dia === 2){
-    return [
-      "08:30","09:05","09:40","10:15",
-      "10:50","11:25","12:00","12:35",
-      "13:10","13:45","14:20","14:55",
-      "15:30","16:05","16:40","17:15","17:50","18:25"
-    ]
-  }
-
-  if(dia === 3){
-    return [
-      "08:30","09:05","09:40","10:15",
-      "10:50","11:25","12:00","12:35",
-      "13:10","13:45","14:20","14:55",
-      "15:30","16:05","16:40","17:15"
-    ]
-  }
-
-  if(dia === 4){
-    return [
-      "08:30","09:05","09:40","10:15",
-      "10:50","11:25","12:00","12:35",
-      "13:10","13:45","14:20","14:55",
-      "15:30","16:05","16:40","17:15","17:50","18:25"
-    ]
-  }
-
-  if(dia === 5){
-    return [
-      "08:30","09:05","09:40","10:15",
-      "10:50","11:25","12:00","12:35",
-      "13:10","13:45","14:20","14:55",
-      "15:30","16:05","16:40","17:15","17:50","18:25"
-    ]
-  }
-
-  if(dia === 6){
-    return [
-      "08:00","08:35","09:10","09:45",
-      "10:20","10:55","11:30","12:05",
-      "12:40","13:15","13:50","14:25",
-      "15:00","15:35","16:10","16:45",
-      "17:20","17:55"
-    ]
-  }
-
-  return []
+  return horarios
 }

@@ -122,12 +122,21 @@ return `${horas}h ${mins}min`
 
 function selecionarServico(servico){
 
-setServicoSelecionado(servico)
-setBarbeiroSelecionado(null)
+const barbeiroFixo = {
+  id: "abe98043-5925-4ad7-bb09-41f50c12f71f",
+  nome: "Matheus"
+}
 
-setTimeout(()=>{
-scrollSuave(barbeirosRef.current)
-}, 150)
+setServicoSelecionado(servico)
+setBarbeiroSelecionado(barbeiroFixo)
+
+// já navega direto para próxima tela
+navigate("/data", {
+  state: {
+    servico,
+    barbeiro: barbeiroFixo
+  }
+})
 
 }
 
@@ -179,9 +188,8 @@ Agendar horário
 
 <div className="flex justify-between mb-8 text-sm text-zinc-500">
 <span className="text-yellow-500 font-semibold">1. Serviço</span>
-<span>2. Barbeiro</span>
-<span>3. Horário</span>
-<span>4. Dados</span>
+<span>2. Horário</span>
+<span>3. Dados</span>
 </div>
 
 
@@ -245,6 +253,7 @@ R$ {servico.preco}
 
 
 {/* ================= BARBEIROS ================= */}
+{/*
 
 <div ref={barbeirosRef} className="mt-10">
 
@@ -291,7 +300,7 @@ ${barbeiroSelecionado?.id === barbeiro.id
 
 </div>
 
-
+*/}
 </div>
 
 </div>
