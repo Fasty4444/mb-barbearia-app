@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { DateTime } from "https://esm.sh/luxon@3.5.0"
+
+const TIMEZONE = "America/Campo_Grande"
 
 type ConfigPush = {
   id: string
@@ -32,9 +35,7 @@ function montarMensagem(template: string, agendamento: Agendamento) {
 }
 
 function parseDataHoraLocal(data: string, horario: string) {
-  const [ano, mes, dia] = data.split("-").map(Number)
-  const [hora, minuto] = horario.split(":").map(Number)
-  return new Date(ano, mes - 1, dia, hora, minuto, 0, 0)
+  return DateTime.fromISO(`${data}T${horario}:00`, { zone: TIMEZONE })
 }
 
 serve(async () => {
@@ -47,12 +48,12 @@ serve(async () => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-    const agora = new Date()
-    const janelaInicio = new Date(agora.getTime() + 2 * 60 * 60 * 1000)
-    const janelaFim = new Date(janelaInicio.getTime() + 5 * 60 * 1000)
+    const agora = DateTime.now().setZone(TIMEZONE)
+    const janelaInicio = agora.plus({ hours: 2 })
+    const janelaFim = janelaInicio.plus({ minutes: 5 })
 
-    const dataMin = `${janelaInicio.getFullYear()}-${String(janelaInicio.getMonth() + 1).padStart(2, "0")}-${String(janelaInicio.getDate()).padStart(2, "0")}`
-    const dataMax = `${janelaFim.getFullYear()}-${String(janelaFim.getMonth() + 1).padStart(2, "0")}-${String(janelaFim.getDate()).padStart(2, "0")}`
+    const dataMin = janelaInicio.toFormat("yyyy-MM-dd")
+    const dataMax = janelaFim.toFormat("yyyy-MM-dd")
 
     const { data: configPush, error: configError } = await supabase
       .from("config_push")
@@ -62,9 +63,7 @@ serve(async () => {
       .limit(1)
       .maybeSingle<ConfigPush>()
 
-    if (configError) {
-      throw configError
-    }
+    if (configError) throw configError
 
     if (!configPush) {
       return new Response(
@@ -92,9 +91,7 @@ serve(async () => {
       .gte("data", dataMin)
       .lte("data", dataMax)
 
-    if (agError) {
-      throw agError
-    }
+    if (agError) throw agError
 
     const candidatos = (agendamentos || []).filter((ag: Agendamento) => {
       const dataHora = parseDataHoraLocal(ag.data, ag.horario)
@@ -108,6 +105,7 @@ serve(async () => {
         const titulo = montarMensagem(configPush.titulo, agendamento)
         const mensagem = montarMensagem(configPush.mensagem, agendamento)
 
+        const respostaUrl = `${appBaseUrl}/responder-lembrete?id=${agendamento.id}`
         const confirmUrl = `${appBaseUrl}/confirmar?id=${agendamento.id}`
         const cancelUrl = `${appBaseUrl}/cancelar?id=${agendamento.id}`
 
@@ -127,7 +125,7 @@ serve(async () => {
             target_channel: "push",
             headings: { en: titulo, pt: titulo },
             contents: { en: mensagem, pt: mensagem },
-            web_url: confirmUrl,
+            web_url: respostaUrl,
             web_buttons: [
               {
                 id: "confirmar",
@@ -166,7 +164,7 @@ serve(async () => {
           .from("agendamentos")
           .update({
             push_lembrete_enviado: true,
-            push_lembrete_enviado_em: new Date().toISOString(),
+            push_lembrete_enviado_em: DateTime.now().setZone(TIMEZONE).toISO(),
             push_status: "enviado",
             push_erro: null,
           })
