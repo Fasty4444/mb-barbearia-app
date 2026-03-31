@@ -23,6 +23,7 @@ import Caixa from "./pages/admin/Caixa"
 import { initOneSignal } from "./lib/onesignal"
 import ConfigPush from "./pages/admin/ConfigPush"
 import ResponderLembrete from "./pages/ResponderLembrete"
+import StandaloneAdminRedirect from "./components/StandaloneAdminRedirect"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -41,6 +42,8 @@ function App() {
 
   return (
     <BrowserRouter>
+      <StandaloneAdminRedirect />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/agendamento" element={<Agendamento />} />
@@ -110,13 +113,13 @@ function App() {
         />
 
         <Route
-  path="/admin/config-push"
-  element={
-    <AdminRoute>
-      <ConfigPush />
-    </AdminRoute>
-  }
-/>
+          path="/admin/config-push"
+          element={
+            <AdminRoute>
+              <ConfigPush />
+            </AdminRoute>
+          }
+        />
 
         <Route
           path="/admin/feriados"
