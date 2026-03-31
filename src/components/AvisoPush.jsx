@@ -1,25 +1,36 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { pedirPermissaoPush } from "../lib/onesignal"
 
 export default function AvisoPush() {
   const [visivel, setVisivel] = useState(false)
   const [carregando, setCarregando] = useState(false)
-
-  const isIOS = useMemo(() => {
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  }, [])
-
-  const isStandalone = useMemo(() => {
-    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
-  }, [])
+  const [isIOS, setIsIOS] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
+  const [suportaNotificacao, setSuportaNotificacao] = useState(false)
 
   useEffect(() => {
-    const fechado = localStorage.getItem("mb_push_aviso_fechado")
-    const permitido = Notification.permission === "granted"
+    try {
+      const ios =
+        /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 
-    if (!fechado && !permitido) {
-      setVisivel(true)
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        window.navigator.standalone === true
+
+      const suporta = typeof window !== "undefined" && "Notification" in window
+      const permitido = suporta ? Notification.permission === "granted" : false
+      const fechado = localStorage.getItem("mb_push_aviso_fechado")
+
+      setIsIOS(ios)
+      setIsStandalone(standalone)
+      setSuportaNotificacao(suporta)
+
+      if (!fechado && !permitido) {
+        setVisivel(true)
+      }
+    } catch (error) {
+      console.log("Erro ao montar aviso push:", error)
     }
   }, [])
 
@@ -44,8 +55,8 @@ export default function AvisoPush() {
   if (!visivel) return null
 
   return (
-    <div className="w-full max-w-2xl mx-auto mb-6">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative">
+    <div className="px-6 pt-6">
+      <div className="w-full max-w-2xl mx-auto bg-zinc-900 border border-zinc-800 rounded-2xl p-5 relative">
         <button
           onClick={fecharAviso}
           className="absolute top-3 right-3 text-zinc-400 hover:text-white"
@@ -63,17 +74,23 @@ export default function AvisoPush() {
               Permita as notificações para receber lembretes do seu horário e avisos importantes da MB Barbearia.
             </p>
 
-            <button
-              onClick={ativarNotificacoes}
-              disabled={carregando}
-              className={`px-4 py-3 rounded-xl font-semibold ${
-                carregando
-                  ? "bg-yellow-700 text-black opacity-70 cursor-not-allowed"
-                  : "bg-yellow-500 text-black"
-              }`}
-            >
-              {carregando ? "Ativando..." : "Permitir notificações"}
-            </button>
+            {suportaNotificacao ? (
+              <button
+                onClick={ativarNotificacoes}
+                disabled={carregando}
+                className={`px-4 py-3 rounded-xl font-semibold ${
+                  carregando
+                    ? "bg-yellow-700 text-black opacity-70 cursor-not-allowed"
+                    : "bg-yellow-500 text-black"
+                }`}
+              >
+                {carregando ? "Ativando..." : "Permitir notificações"}
+              </button>
+            ) : (
+              <p className="text-sm text-zinc-400">
+                Seu navegador não suporta notificações neste momento.
+              </p>
+            )}
           </>
         )}
 
@@ -84,7 +101,7 @@ export default function AvisoPush() {
             </h2>
 
             <p className="text-zinc-300 mb-4">
-              Para receber lembretes do seu horário no iPhone, primeiro adicione a MB Barbearia à sua Tela Inicial.
+              Para receber lembretes do seu horário no iPhone, primeiro adicione a MB Barbearia à Tela Inicial.
             </p>
 
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-300 space-y-2">
@@ -92,7 +109,7 @@ export default function AvisoPush() {
               <p><strong>2.</strong> Toque em <strong>Compartilhar</strong></p>
               <p><strong>3.</strong> Toque em <strong>Adicionar à Tela Inicial</strong></p>
               <p><strong>4.</strong> Abra a MB Barbearia pelo ícone da Tela Inicial</p>
-              <p><strong>5.</strong> Depois permita as notificações após realizar o agendamento!</p>
+              <p><strong>5.</strong> Depois permita as notificações quando solicitado</p>
             </div>
 
             <button
@@ -114,17 +131,23 @@ export default function AvisoPush() {
               Agora que a MB Barbearia está na sua Tela Inicial, ative as notificações para receber lembretes do seu horário.
             </p>
 
-            <button
-              onClick={ativarNotificacoes}
-              disabled={carregando}
-              className={`px-4 py-3 rounded-xl font-semibold ${
-                carregando
-                  ? "bg-yellow-700 text-black opacity-70 cursor-not-allowed"
-                  : "bg-yellow-500 text-black"
-              }`}
-            >
-              {carregando ? "Ativando..." : "Permitir notificações"}
-            </button>
+            {suportaNotificacao ? (
+              <button
+                onClick={ativarNotificacoes}
+                disabled={carregando}
+                className={`px-4 py-3 rounded-xl font-semibold ${
+                  carregando
+                    ? "bg-yellow-700 text-black opacity-70 cursor-not-allowed"
+                    : "bg-yellow-500 text-black"
+                }`}
+              >
+                {carregando ? "Ativando..." : "Permitir notificações"}
+              </button>
+            ) : (
+              <p className="text-sm text-zinc-400">
+                As notificações ainda não estão disponíveis nesta forma de abertura.
+              </p>
+            )}
           </>
         )}
       </div>
