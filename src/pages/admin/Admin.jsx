@@ -625,52 +625,46 @@ export default function Admin() {
     }
   }, [statusMenuId])
 
-  async function handleStatusChange(item, novoStatus) {
-    await supabase
-      .from("agendamentos")
-      .update({ status: novoStatus })
-      .eq("id", item.id)
+async function handleStatusChange(item, novoStatus) {
+  const numero = item.clientes?.telefone?.replace(/\D/g, "")
+  const baseUrl = window.location.origin
+  const linkRemarcar = `${baseUrl}/agendamento`
 
-    const numero = item.clientes?.telefone?.replace(/\D/g, "")
-    if (!numero) {
-      buscar()
-      carregarAgendamentosCalendario()
-      return
-    }
+  let mensagem = ""
 
-    const baseUrl = window.location.origin
-    const linkRemarcar = `${baseUrl}/agendamento`
-
-    let mensagem = ""
-
-    if (novoStatus === "concluido") {
-      mensagem = `Olá ${item.clientes?.nome}! 💈
+  if (novoStatus === "concluido") {
+    mensagem = `Olá ${item.clientes?.nome}! 💈
 
 Seu atendimento foi finalizado 🙌
 
 Como foi sua experiência?
 Deixe seu feedback ⭐`
-    }
+  }
 
-    if (novoStatus === "faltou") {
-      mensagem = `Olá ${item.clientes?.nome}!
+  if (novoStatus === "faltou") {
+    mensagem = `Olá ${item.clientes?.nome}!
 
 Você não compareceu ao seu horário 😕
 Que tal reagendar?
 
 👉 ${linkRemarcar}`
-    }
-
-    if (mensagem) {
-      window.open(
-        `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
-        "_blank"
-      )
-    }
-
-    buscar()
-    carregarAgendamentosCalendario()
   }
+
+  if (mensagem && numero) {
+    window.open(
+      `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
+      "_blank"
+    )
+  }
+
+  await supabase
+    .from("agendamentos")
+    .update({ status: novoStatus })
+    .eq("id", item.id)
+
+  buscar()
+  carregarAgendamentosCalendario()
+}
 
   async function abrirWhatsApp(item) {
     const numero = item.clientes?.telefone?.replace(/\D/g, "")
