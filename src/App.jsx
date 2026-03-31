@@ -22,6 +22,7 @@ import Feriados from "./pages/admin/Feriados"
 import Caixa from "./pages/admin/Caixa"
 import { initOneSignal } from "./lib/onesignal"
 import ConfigPush from "./pages/admin/ConfigPush"
+import ResponderLembrete from "./pages/ResponderLembrete"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -49,6 +50,7 @@ function App() {
         <Route path="/cliente" element={<Cliente />} />
         <Route path="/confirmar" element={<Confirmar />} />
         <Route path="/cancelar" element={<Cancelar />} />
+        <Route path="/responder-lembrete" element={<ResponderLembrete />} />
         <Route path="/cancelarCliente" element={<CancelarCliente />} />
         <Route path="/historico" element={<Historico />} />
         <Route path="/perfil" element={<Perfil />} />
