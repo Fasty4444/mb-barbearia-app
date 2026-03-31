@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 export default function AdminRoute({ children }) {
 
 const [autorizado, setAutorizado] = useState(false)
 const [pin, setPin] = useState("")
+
+const navigate = useNavigate()
 
 const PIN_CORRETO = import.meta.env.VITE_ADMIN_PIN
 
@@ -18,7 +21,9 @@ function validarPin(){
 
 if(pin === PIN_CORRETO){
 localStorage.setItem("admin_autorizado", "true")
+localStorage.setItem("atalho_admin", "true")
 setAutorizado(true)
+navigate("/admin/dashboard", { replace: true })
 }else{
 alert("Senha incorreta")
 }

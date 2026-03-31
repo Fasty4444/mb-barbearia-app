@@ -15,19 +15,16 @@ export default function StandaloneAdminRedirect() {
   useEffect(() => {
     const path = location.pathname
 
-    // salva última rota acessada do admin
     if (path.startsWith("/admin")) {
       localStorage.setItem("ultimo_admin_path", path)
     }
 
-    // se abriu pela tela inicial em modo standalone
-    // e caiu na home "/", tenta voltar para o admin
     if (isStandaloneMode() && path === "/") {
       const adminAutorizado = localStorage.getItem("admin_autorizado") === "true"
-      const ultimoAdminPath = localStorage.getItem("ultimo_admin_path") || "/admin"
+      const atalhoAdmin = localStorage.getItem("atalho_admin") === "true"
 
-      if (adminAutorizado) {
-        navigate(ultimoAdminPath, { replace: true })
+      if (adminAutorizado && atalhoAdmin) {
+        navigate("/admin/dashboard", { replace: true })
       }
     }
   }, [location.pathname, navigate])
