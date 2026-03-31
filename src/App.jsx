@@ -24,6 +24,7 @@ import { initOneSignal } from "./lib/onesignal"
 import ConfigPush from "./pages/admin/ConfigPush"
 import ResponderLembrete from "./pages/ResponderLembrete"
 import StandaloneAdminRedirect from "./components/StandaloneAdminRedirect"
+import LoginAdmin from "./pages/LoginAdmin"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -50,6 +51,7 @@ function App() {
         <Route path="/barbeiro" element={<Barbeiro />} />
         <Route path="/data" element={<Data />} />
         <Route path="/sucesso" element={<Sucesso />} />
+        <Route path="/login-admin" element={<LoginAdmin />} />
         <Route path="/cliente" element={<Cliente />} />
         <Route path="/confirmar" element={<Confirmar />} />
         <Route path="/cancelar" element={<Cancelar />} />
@@ -77,7 +79,7 @@ function App() {
         />
 
         <Route
-          path="/admin/dashboard"
+          path="/admin"
           element={
             <AdminRoute>
               <Dashboard />

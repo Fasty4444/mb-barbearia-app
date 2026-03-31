@@ -96,6 +96,16 @@ return(
   👤 Meu perfil
 </button>
 
+<button
+  onClick={()=>{
+    setMenuAberto(false)
+    navigate("/login-admin")
+  }}
+  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-yellow-500/20 hover:text-yellow-400 transition shadow-sm w-full"
+>
+  🔐 Área do barbeiro
+</button>
+
 
       </div>
 
