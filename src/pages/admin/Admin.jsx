@@ -651,10 +651,8 @@ Que tal reagendar?
   }
 
   if (mensagem && numero) {
-    window.open(
-      `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
-      "_blank"
-    )
+const url = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`
+window.location.href = url
   }
 
   await supabase
@@ -692,17 +690,15 @@ ${linkConfirmar}
 ❌ Cancelar:
 ${linkCancelar}`
 
-      window.open(
-        `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
-        "_blank"
-      )
+const url = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`
+window.location.href = url
 
       await supabase
         .from("agendamentos")
         .update({ lembrete_enviado: true })
         .eq("id", item.id)
     } else {
-      window.open(`https://wa.me/55${numero}`, "_blank")
+      window.location.href = `https://wa.me/55${numero}`
     }
 
     buscar()
