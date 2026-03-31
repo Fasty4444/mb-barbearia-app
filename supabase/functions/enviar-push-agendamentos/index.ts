@@ -16,6 +16,7 @@ type Agendamento = {
   data: string
   horario: string
   cliente_id: string
+  lembrete_enviado?: boolean | null
   push_lembrete_enviado: boolean
   push_lembrete_enviado_em: string | null
   push_status: string | null
@@ -72,28 +73,30 @@ serve(async () => {
       )
     }
 
-    const { data: agendamentos, error: agError } = await supabase
-      .from("agendamentos")
-      .select(`
-        id,
-        data,
-        horario,
-        cliente_id,
-        push_lembrete_enviado,
-        push_lembrete_enviado_em,
-        push_status,
-        push_erro,
-        clientes(nome, telefone),
-        servicos(nome, preco),
-        barbeiros(nome)
-      `)
-      .eq("push_lembrete_enviado", false)
-      .gte("data", dataMin)
-      .lte("data", dataMax)
+const { data: agendamentos, error: agError } = await supabase
+  .from("agendamentos")
+  .select(`
+    id,
+    data,
+    horario,
+    cliente_id,
+    lembrete_enviado,
+    push_lembrete_enviado,
+    push_lembrete_enviado_em,
+    push_status,
+    push_erro,
+    clientes(nome, telefone),
+    servicos(nome, preco),
+    barbeiros(nome)
+  `)
+  .eq("push_lembrete_enviado", false)
+  .gte("data", dataMin)
+  .lte("data", dataMax)
 
     if (agError) throw agError
 
     const candidatos = (agendamentos || []).filter((ag: Agendamento) => {
+      if (ag.lembrete_enviado) return false
       const dataHora = parseDataHoraLocal(ag.data, ag.horario)
       return dataHora >= janelaInicio && dataHora < janelaFim
     })
@@ -102,6 +105,22 @@ serve(async () => {
 
     for (const agendamento of candidatos) {
       try {
+            if (agendamento.lembrete_enviado) {
+      await supabase
+        .from("agendamentos")
+        .update({
+          push_status: "ignorado_whatsapp",
+          push_erro: null,
+        })
+        .eq("id", agendamento.id)
+
+      resultados.push({
+        id: agendamento.id,
+        status: "ignorado_whatsapp",
+      })
+
+      continue
+    }
         const titulo = montarMensagem(configPush.titulo, agendamento)
         const mensagem = montarMensagem(configPush.mensagem, agendamento)
 

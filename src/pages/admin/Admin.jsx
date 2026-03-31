@@ -64,6 +64,13 @@ function formatarDataHoraPush(valor) {
 }
 
 function getPushInfo(item) {
+  if (item.push_status === "ignorado_whatsapp") {
+    return {
+      label: "Ignorado por WhatsApp",
+      classe: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+    }
+  }
+
   if (item.push_status === "erro") {
     return {
       label: "Erro no push",

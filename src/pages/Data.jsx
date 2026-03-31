@@ -184,7 +184,6 @@ export default function Data() {
     return bloquearPorDuracao(livres, horariosOcupados)
   }
 
-  const domingo = criarDataLocal(date).getDay() === 0
   const horarios = diaBloqueado ? [] : obterDisponiveis()
 
   return (
@@ -229,11 +228,6 @@ export default function Data() {
           />
         </div>
 
-        {domingo && (
-          <p className="text-center text-red-500 mb-6">
-            Barbearia fechada aos domingos
-          </p>
-        )}
 
         {diaBloqueado && (
           <p className="text-center text-red-500 mb-6">
@@ -241,7 +235,6 @@ export default function Data() {
           </p>
         )}
 
-        {!domingo && (
           <>
             <h2 className="text-center mb-6">
               Horários vagos para {criarDataLocal(date).toLocaleDateString("pt-BR")}
@@ -286,7 +279,6 @@ export default function Data() {
               </div>
             )}
           </>
-        )}
       </motion.div>
     </div>
   )
