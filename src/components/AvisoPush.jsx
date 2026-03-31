@@ -28,6 +28,11 @@ export default function AvisoPush() {
       setIsStandalone(standalone)
       setSuportaNotificacao(suporta)
 
+      if (ios && !standalone) {
+        setVisivel(true)
+        return
+      }
+
       if (!fechado && !permitido) {
         setVisivel(true)
       }
