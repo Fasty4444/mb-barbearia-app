@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import PageTransition from "../components/PageTransition"
 import CountUp from "react-countup"
 import { useState } from "react"
+import AvisoPush from "../components/AvisoPush"
 
 export default function Home(){
 
@@ -151,7 +152,7 @@ Agendar horário
 
 </nav>
 
-
+<AvisoPush />
 
 {/* HERO */}
 
@@ -214,7 +215,7 @@ className="relative z-10 bg-yellow-500 text-black px-10 py-4 rounded-2xl text-lg
 Agendar agora
 
 </motion.button>
-
+{/* 
 <motion.button
 onClick={()=>navigate("/cancelarCliente")}
 whileHover={{scale:1.05}}
@@ -223,7 +224,7 @@ className="mt-4 border border-yellow-500 text-yellow-500 px-10 py-4 rounded-2xl 
 >
 Cancelar agendamento
 </motion.button>
-
+*/}
 {/* CONTADORES */}
 
 <motion.div
