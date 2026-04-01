@@ -25,6 +25,8 @@ import ConfigPush from "./pages/admin/ConfigPush"
 import ResponderLembrete from "./pages/ResponderLembrete"
 import StandaloneAdminRedirect from "./components/StandaloneAdminRedirect"
 import LoginAdmin from "./pages/LoginAdmin"
+import ResetSenhaAdmin from "./pages/ResetSenhaAdmin"
+import PaginaCliente from "./pages/admin/PaginaCliente"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -54,11 +56,21 @@ function App() {
         <Route path="/login-admin" element={<LoginAdmin />} />
         <Route path="/cliente" element={<Cliente />} />
         <Route path="/confirmar" element={<Confirmar />} />
+        <Route path="/reset-senha-admin" element={<ResetSenhaAdmin />} />
         <Route path="/cancelar" element={<Cancelar />} />
         <Route path="/responder-lembrete" element={<ResponderLembrete />} />
         <Route path="/cancelarCliente" element={<CancelarCliente />} />
         <Route path="/historico" element={<Historico />} />
         <Route path="/perfil" element={<Perfil />} />
+
+        <Route
+  path="/admin/pagina-cliente"
+  element={
+    <AdminRoute>
+      <PaginaCliente />
+    </AdminRoute>
+  }
+/>
 
         <Route
           path="/admin"

@@ -346,6 +346,11 @@ export default function Admin() {
   const [horariosEdicao, setHorariosEdicao] = useState([])
   const [servicos, setServicos] = useState([])
   const [servicoEditado, setServicoEditado] = useState("")
+  const [novoAgendamentoAberto, setNovoAgendamentoAberto] = useState(false)
+  const [novoHorarioAdmin, setNovoHorarioAdmin] = useState("")
+  const [novoClienteNome, setNovoClienteNome] = useState("")
+  const [novoServicoAdmin, setNovoServicoAdmin] = useState("")
+  const [salvandoNovoAgendamento, setSalvandoNovoAgendamento] = useState(false)
 
   const [aniversariantesHoje, setAniversariantesHoje] = useState([])
   const [todosHorarios, setTodosHorarios] = useState([])
@@ -361,6 +366,11 @@ export default function Admin() {
   
 
   const navigate = useNavigate()
+
+  async function sairDaConta() {
+  await supabase.auth.signOut()
+  navigate("/", { replace: true })
+}
 
   function calcularIdade(data) {
     if (!data) return ""
@@ -408,6 +418,13 @@ export default function Admin() {
     setNovoHorario(item.horario)
     setServicoEditado(item.servico_id)
   }
+
+function abrirNovoAgendamento(hora) {
+  setNovoHorarioAdmin(hora)
+  setNovoClienteNome("")
+  setNovoServicoAdmin("")
+  setNovoAgendamentoAberto(true)
+}
 
   function abrirDarBaixa(item) {
   setAgendamentoBaixa(item)
@@ -481,6 +498,53 @@ export default function Admin() {
     buscar()
     carregarAgendamentosCalendario()
   }
+
+async function salvarNovoAgendamentoAdmin() {
+  if (!novoClienteNome || !novoServicoAdmin || !dataSelecionada || !novoHorarioAdmin) {
+    alert("Preencha nome e serviço.")
+    return
+  }
+
+  try {
+    setSalvandoNovoAgendamento(true)
+
+    let clienteId = null
+
+    const { data: clienteNovo, error: erroCliente } = await supabase
+      .from("clientes")
+      .insert({
+        nome: novoClienteNome
+      })
+      .select("id")
+      .single()
+
+    if (erroCliente) throw erroCliente
+
+    clienteId = clienteNovo.id
+
+    const { error: erroAgendamento } = await supabase
+      .from("agendamentos")
+      .insert({
+        cliente_id: clienteId,
+        servico_id: novoServicoAdmin,
+        data: dataSelecionada,
+        horario: novoHorarioAdmin,
+        status: "confirmado",
+        lembrete_enviado: false
+      })
+
+    if (erroAgendamento) throw erroAgendamento
+
+    setNovoAgendamentoAberto(false)
+    buscar()
+    carregarAgendamentosCalendario()
+  } catch (error) {
+    console.log(error)
+    alert(error.message || "Erro ao criar agendamento.")
+  } finally {
+    setSalvandoNovoAgendamento(false)
+  }
+}
 
   async function buscar() {
     let query = supabase
@@ -625,6 +689,28 @@ export default function Admin() {
     }
   }, [statusMenuId])
 
+  useEffect(() => {
+  const channel = supabase
+    .channel("realtime-agendamentos-admin")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "agendamentos",
+      },
+      () => {
+        buscar()
+        carregarAgendamentosCalendario()
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [dataSelecionada, dataCalendarioBase, visaoCalendario])
+
 async function handleStatusChange(item, novoStatus) {
   const numero = item.clientes?.telefone?.replace(/\D/g, "")
   const baseUrl = window.location.origin
@@ -722,10 +808,11 @@ window.location.href = url
 
   useEffect(() => {
     async function carregarServicos() {
-      const { data } = await supabase
-        .from("servicos")
-        .select("*")
-        .order("preco")
+const { data } = await supabase
+  .from("servicos")
+  .select("*")
+  .eq("ativo", true)
+  .order("preco")
 
       setServicos(data || [])
     }
@@ -1035,75 +1122,114 @@ window.location.href = url
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
-      <div className="md:w-64 w-full bg-zinc-900 p-4 border-b md:border-r border-zinc-800 flex md:flex-col gap-2">
-        <button
-          onClick={() => setAba("dashboard")}
-          className={`p-2 rounded ${aba === "dashboard" ? "bg-yellow-500 text-black" : ""}`}
-        >
-          Dashboard
-        </button>
+<div className="md:w-64 w-full bg-zinc-900 p-4 border-b md:border-r border-zinc-800 flex md:flex-col gap-2 md:min-h-screen">
+  <button
+    onClick={() => setAba("dashboard")}
+    className={`p-2 rounded ${aba === "dashboard" ? "bg-yellow-500 text-black" : ""}`}
+  >
+    Dashboard
+  </button>
 
-        <button
-          onClick={() => {
-            setAba("agenda")
-            setAgendaModo("")
-          }}
-          className={`p-2 rounded ${aba === "agenda" ? "bg-yellow-500 text-black" : ""}`}
-        >
-          Agenda
-        </button>
+  <button
+    onClick={() => {
+      setAba("agenda")
+      setAgendaModo("")
+    }}
+    className={`p-2 rounded ${aba === "agenda" ? "bg-yellow-500 text-black" : ""}`}
+  >
+    Agenda
+  </button>
 
-        <button
-          onClick={() => setAba("clientes")}
-          className={`p-2 rounded ${aba === "clientes" ? "bg-yellow-500 text-black" : ""}`}
-        >
-          Clientes
-        </button>
+  <button
+    onClick={() => setAba("clientes")}
+    className={`p-2 rounded ${aba === "clientes" ? "bg-yellow-500 text-black" : ""}`}
+  >
+    Clientes
+  </button>
 
-        <button
-          onClick={() => setAba("menu")}
-          className={`p-2 rounded ${aba === "menu" ? "bg-yellow-500 text-black" : ""}`}
-        >
-          Menu
-        </button>
-      </div>
+  <button
+    onClick={() => setAba("menu")}
+    className={`p-2 rounded ${aba === "menu" ? "bg-yellow-500 text-black" : ""}`}
+  >
+    Menu
+  </button>
+
+  <div className="hidden md:flex md:flex-col gap-2 md:mt-auto pt-6">
+    <button
+      onClick={() => navigate("/")}
+      className="p-2 rounded bg-zinc-800 hover:bg-zinc-700 transition"
+    >
+      Voltar para o site
+    </button>
+
+    <button
+      onClick={sairDaConta}
+      className="p-2 rounded bg-red-500 hover:bg-red-600 transition text-white"
+    >
+      Sair da conta
+    </button>
+  </div>
+</div>
 
       <div className="flex-1 p-4 md:p-8">
-        {aba === "menu" && (
-          <div>
-            <h1 className="text-3xl mb-6">Menu</h1>
+{aba === "menu" && (
+  <div>
+    <h1 className="text-3xl mb-6">Menu</h1>
 
-            <div className="grid gap-4">
-              <button
-                onClick={() => navigate("/admin/funcionamento")}
-                className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
-              >
-                Horário de Funcionamento
-              </button>
+    <div className="grid gap-4">
+      <button
+        onClick={() => navigate("/admin/funcionamento")}
+        className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
+      >
+        Horário de Funcionamento
+      </button>
 
-              <button
-                onClick={() => navigate("/admin/servicos")}
-                className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
-              >
-                Gerenciar serviços
-              </button>
+      <button
+        onClick={() => navigate("/admin/servicos")}
+        className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
+      >
+        Gerenciar serviços
+      </button>
 
-              <button
-                onClick={() => navigate("/admin/feriados")}
-                className="bg-zinc-800 p-4 rounded"
-              >
-                Gerenciar feriados
-              </button>
+      <button
+        onClick={() => navigate("/admin/feriados")}
+        className="bg-zinc-800 p-4 rounded"
+      >
+        Gerenciar feriados
+      </button>
 
-              <button
-                onClick={() => navigate("/admin/caixa")}
-                className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
-              >
-                Caixa
-              </button>
-            </div>
-          </div>
-        )}
+      <button
+        onClick={() => navigate("/admin/caixa")}
+        className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
+      >
+        Caixa
+      </button>
+
+      <button
+  onClick={() => navigate("/admin/pagina-cliente")}
+  className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
+>
+  Configurações da Página do cliente
+</button>
+    </div>
+
+    <div className="grid gap-4 md:hidden mt-4">
+      <button
+        onClick={() => navigate("/")}
+        className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-yellow-500"
+      >
+        Voltar para o site
+      </button>
+
+      <button
+        onClick={sairDaConta}
+        className="bg-red-500 p-4 rounded-xl text-white hover:bg-red-600"
+      >
+        Sair da conta
+      </button>
+    </div>
+  </div>
+)}
 
         {aba === "dashboard" && (
           <div>
@@ -1399,25 +1525,27 @@ window.location.href = url
                     )
                   })}
 
-                {horariosDisponiveis.length > 0 && (
-                  <div className="mt-6">
-                    <p className="text-zinc-500 text-sm mb-2">Horários disponíveis</p>
+                      {horariosDisponiveis.length > 0 && (
+                        <div className="mt-6">
+                          <p className="text-zinc-500 text-sm mb-2">Horários disponíveis</p>
 
-                    {horariosDisponiveis.map((hora) => (
-                      <div
-                        key={hora}
-                        className="bg-zinc-900 p-5 mb-3 rounded-xl border border-zinc-800 opacity-60"
-                      >
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="text-zinc-400 text-sm">Disponível</p>
-                          </div>
-                          <div className="text-yellow-500 font-bold">{hora}</div>
+                          {horariosDisponiveis.map((hora) => (
+                            <button
+                              key={hora}
+                              onClick={() => abrirNovoAgendamento(hora)}
+                              className="w-full bg-zinc-900 p-5 mb-3 rounded-xl border border-zinc-800 hover:border-yellow-500 transition text-left"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="text-zinc-400 text-sm">Disponível</p>
+                                  <p className="text-xs text-zinc-500 mt-1">Toque para criar agendamento</p>
+                                </div>
+                                <div className="text-yellow-500 font-bold">{hora}</div>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      )}
               </div>
             )}
 
@@ -1908,6 +2036,57 @@ window.location.href = url
             </div>
           </div>
         )}
+
+{novoAgendamentoAberto && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-md border border-zinc-800">
+      <h2 className="text-xl mb-1">Novo agendamento</h2>
+      <p className="text-sm text-zinc-400 mb-4">
+        {dataSelecionada} às {novoHorarioAdmin}
+      </p>
+
+      <input
+        type="text"
+        placeholder="Nome do cliente"
+        value={novoClienteNome}
+        onChange={(e) => setNovoClienteNome(e.target.value)}
+        className="w-full p-3 mb-3 bg-zinc-800 rounded border border-zinc-700"
+      />
+
+
+      <select
+        value={novoServicoAdmin}
+        onChange={(e) => setNovoServicoAdmin(e.target.value)}
+        className="w-full p-3 mb-4 bg-zinc-800 rounded border border-zinc-700"
+      >
+        <option value="">Selecione um serviço</option>
+        {servicos.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.nome} — R$ {s.preco}
+          </option>
+        ))}
+      </select>
+
+      <div className="flex gap-2">
+        <button
+          onClick={salvarNovoAgendamentoAdmin}
+          disabled={salvandoNovoAgendamento}
+          className="bg-green-500 text-black px-4 py-2 rounded font-semibold"
+        >
+          {salvandoNovoAgendamento ? "Salvando..." : "Salvar"}
+        </button>
+
+        <button
+          onClick={() => setNovoAgendamentoAberto(false)}
+          className="bg-zinc-700 px-4 py-2 rounded"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
         <DarBaixaModal
   aberto={darBaixaAberto}
   agendamento={agendamentoBaixa}

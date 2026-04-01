@@ -90,6 +90,20 @@ export default function Feriados() {
     return `${dia}/${mes}/${ano}`;
     }
 
+    function handleNovaData(e) {
+  let valor = e.target.value.replace(/\D/g, "");
+
+  if (valor.length > 8) return;
+
+  if (valor.length > 4) {
+    valor = `${valor.slice(0, 2)}/${valor.slice(2, 4)}/${valor.slice(4)}`;
+  } else if (valor.length > 2) {
+    valor = `${valor.slice(0, 2)}/${valor.slice(2)}`;
+  }
+
+  setNovaData(valor);
+}
+
   function alternarAtivo(data) {
     setFeriados((prev) =>
       prev.map((item) =>
@@ -106,12 +120,28 @@ export default function Feriados() {
     );
   }
 
-  function adicionarFeriado() {
-    setErro("");
-    setSucesso("");
+function adicionarFeriado() {
+  setErro("");
+  setSucesso("");
 
-    const nome = novoNome.trim();
-    const data = novaData;
+  const nome = novoNome.trim();
+
+  let data = null;
+
+  if (novaData) {
+    const numeros = novaData.replace(/\D/g, "");
+
+    if (numeros.length !== 8) {
+      setErro("Digite a data no formato dd/mm/aaaa.");
+      return;
+    }
+
+    const dia = numeros.slice(0, 2);
+    const mes = numeros.slice(2, 4);
+    const ano = numeros.slice(4, 8);
+
+    data = `${ano}-${mes}-${dia}`;
+  }
 
     if (!nome) {
       setErro("Digite o nome do feriado.");
@@ -231,12 +261,15 @@ export default function Feriados() {
                 className="md:col-span-2 bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-yellow-500"
               />
 
-              <input
-                type="date"
-                value={novaData}
-                onChange={(e) => setNovaData(e.target.value)}
-                className="bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-yellow-500"
-              />
+<input
+  type="text"
+  inputMode="numeric"
+  placeholder="dd/mm/aaaa"
+  value={novaData}
+  onChange={handleNovaData}
+  maxLength={10}
+  className="bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 outline-none focus:border-yellow-500"
+/>
             </div>
 
             <button

@@ -8,7 +8,9 @@ export default function LoginAdmin() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [loading, setLoading] = useState(false)
+  const [loadingReset, setLoadingReset] = useState(false)
   const [erro, setErro] = useState("")
+  const [mensagem, setMensagem] = useState("")
 
   useEffect(() => {
     verificarSessao()
@@ -25,6 +27,7 @@ export default function LoginAdmin() {
   async function handleLogin(e) {
     e.preventDefault()
     setErro("")
+    setMensagem("")
     setLoading(true)
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -33,12 +36,37 @@ export default function LoginAdmin() {
     })
 
     if (error) {
-      setErro("E-mail ou senha incorretos.")
+      setErro(error.message || "E-mail ou senha incorretos.")
       setLoading(false)
       return
     }
 
     navigate("/admin", { replace: true })
+  }
+
+  async function handleEsqueciSenha() {
+    setErro("")
+    setMensagem("")
+
+    if (!email) {
+      setErro("Digite seu e-mail para receber o link de recuperação.")
+      return
+    }
+
+    setLoadingReset(true)
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-senha-admin`
+    })
+
+    if (error) {
+      setErro(error.message || "Não foi possível enviar o e-mail de recuperação.")
+      setLoadingReset(false)
+      return
+    }
+
+    setMensagem("Enviamos um link de recuperação para o seu e-mail.")
+    setLoadingReset(false)
   }
 
   return (
@@ -81,9 +109,26 @@ export default function LoginAdmin() {
             />
           </div>
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleEsqueciSenha}
+              disabled={loadingReset}
+              className="text-sm text-yellow-500 hover:text-yellow-400 transition"
+            >
+              {loadingReset ? "Enviando..." : "Esqueci minha senha"}
+            </button>
+          </div>
+
           {erro && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl p-3">
               {erro}
+            </div>
+          )}
+
+          {mensagem && (
+            <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl p-3">
+              {mensagem}
             </div>
           )}
 

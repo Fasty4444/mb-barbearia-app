@@ -55,9 +55,11 @@ useEffect(() => {
 async function carregarServicos(){
 
 const { data, error } = await supabase
-.from("servicos")
-.select("*")
-.order("preco")
+  .from("servicos")
+  .select("*")
+  .eq("ativo", true)
+  .eq("visivel_cliente", true)
+  .order("preco")
 
 if(error){
 console.log(error)

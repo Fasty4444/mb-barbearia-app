@@ -77,7 +77,8 @@ setNome(data.nome)
 }
 
 if(data?.nascimento){
-  setNascimento(data.nascimento)
+  const [ano, mes, dia] = data.nascimento.split("-")
+  setNascimento(`${dia}/${mes}/${ano}`)
 }
 
 }
@@ -104,6 +105,20 @@ function handleTelefone(e){
 function handleNome(e){
 let valor = e.target.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "")
 setNome(valor)
+}
+
+function handleNascimento(e){
+  let valor = e.target.value.replace(/\D/g, "")
+
+  if (valor.length > 8) return
+
+  if (valor.length > 4) {
+    valor = `${valor.slice(0,2)}/${valor.slice(2,4)}/${valor.slice(4)}`
+  } else if (valor.length > 2) {
+    valor = `${valor.slice(0,2)}/${valor.slice(2)}`
+  }
+
+  setNascimento(valor)
 }
 
 
@@ -134,6 +149,24 @@ try{
 
 setSalvando(true)
 
+let nascimentoFormatado = null
+
+if (nascimento) {
+  const numeros = nascimento.replace(/\D/g, "")
+
+  if (numeros.length !== 8) {
+    alert("Digite a data de nascimento no formato dd/mm/aaaa")
+    setSalvando(false)
+    return
+  }
+
+  const dia = numeros.slice(0, 2)
+  const mes = numeros.slice(2, 4)
+  const ano = numeros.slice(4, 8)
+
+  nascimentoFormatado = `${ano}-${mes}-${dia}`
+}
+
 let cliente = null
 
 const { data: clienteExistente } = await supabase
@@ -145,12 +178,12 @@ const { data: clienteExistente } = await supabase
 if(clienteExistente){
 
   // atualiza nascimento se ele não tiver ainda
-  if(nascimento){
-    await supabase
-      .from("clientes")
-      .update({ nascimento })
-      .eq("id", clienteExistente.id)
-  }
+if(nascimentoFormatado){
+  await supabase
+    .from("clientes")
+    .update({ nascimento: nascimentoFormatado })
+    .eq("id", clienteExistente.id)
+}
 
   cliente = clienteExistente
 
@@ -158,7 +191,7 @@ if(clienteExistente){
 
 const { data: novoCliente, error } = await supabase
 .from("clientes")
-.insert([{ nome, telefone, nascimento: nascimento || null }])
+.insert([{ nome, telefone, nascimento: nascimentoFormatado || null }])
 .select()
 .single()
 
@@ -302,18 +335,17 @@ className="w-full p-4 mb-4 bg-zinc-900 rounded-xl"
 {/* Data aniversário */}
 
 <div className="w-full flex items-center bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-4 gap-2 mb-4">
+  Nascimento :
 
-Nascimento :
-
-
-<input
-  type="date"
-  value={nascimento}
-  onChange={(e)=>setNascimento(e.target.value)}
-  className="bg-transparent outline-none text-white flex-1"
-
-/>
-
+  <input
+    type="text"
+    inputMode="numeric"
+    placeholder="dd/mm/aaaa"
+    value={nascimento}
+    onChange={handleNascimento}
+    maxLength={10}
+    className="bg-transparent outline-none text-white flex-1"
+  />
 </div>
 
 

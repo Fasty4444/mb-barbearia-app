@@ -3,14 +3,47 @@ import { Scissors } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import PageTransition from "../components/PageTransition"
 import CountUp from "react-countup"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import AvisoPush from "../components/AvisoPush"
+import { supabase } from "../lib/supabase"
 
 export default function Home(){
 
 const navigate = useNavigate()
 
 const [menuAberto, setMenuAberto] = useState(false)
+const [fotosGaleria, setFotosGaleria] = useState([])
+const [fotoAtual, setFotoAtual] = useState(0)
+
+useEffect(() => {
+  buscarGaleria()
+}, [])
+
+async function buscarGaleria() {
+  const { data, error } = await supabase
+    .from("galeria_home")
+    .select("*")
+    .eq("ativo", true)
+    .order("ordem", { ascending: true })
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.log("Erro ao buscar galeria:", error)
+    return
+  }
+
+  setFotosGaleria(data || [])
+}
+
+useEffect(() => {
+  if (fotosGaleria.length <= 1) return
+
+  const interval = setInterval(() => {
+    setFotoAtual((prev) => (prev + 1) % fotosGaleria.length)
+  }, 3000)
+
+  return () => clearInterval(interval)
+}, [fotosGaleria])
 
 return(
 
@@ -245,21 +278,21 @@ className="relative z-10 mt-24 flex gap-16 text-center"
 >
 
 <div>
-<p className="text-4xl font-bold text-yellow-500">
-<CountUp end={3000} duration={2}/>
+<p className="text-2xl font-bold text-yellow-500">
+<CountUp end={15687} duration={2}/>
 </p>
 <p className="text-zinc-400">Cortes realizados</p>
 </div>
 
 <div>
-<p className="text-4xl font-bold text-yellow-500">
+<p className="text-2xl font-bold text-yellow-500">
 <CountUp end={1200} duration={2}/>
 </p>
 <p className="text-zinc-400">Clientes atendidos</p>
 </div>
 
 <div>
-<p className="text-4xl font-bold text-yellow-500">
+<p className="text-2xl font-bold text-yellow-500">
 4.9★
 </p>
 <p className="text-zinc-400">Avaliação</p>
@@ -273,25 +306,90 @@ className="relative z-10 mt-24 flex gap-16 text-center"
 {/* GALERIA */}
 
 <motion.section
-initial={{opacity:0,y:60}}
-whileInView={{opacity:1,y:0}}
-transition={{duration:0.6}}
-viewport={{once:true}}
-className="py-28"
+  initial={{opacity:0,y:60}}
+  whileInView={{opacity:1,y:0}}
+  transition={{duration:0.6}}
+  viewport={{once:true}}
+  className="py-28 px-6"
 >
+  <h2 className="text-3xl font-bold text-center mb-12">
+    Cortes realizados
+  </h2>
 
-<h2 className="text-3xl font-bold text-center mb-12">
-Cortes realizados
-</h2>
+  <div className="max-w-3xl mx-auto">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
+      {fotosGaleria.length > 0 ? (
+        <>
+          <div className="relative w-full h-[320px] md:h-[420px] overflow-hidden">
+            <img
+              src={fotosGaleria[fotoAtual]?.imagem_url}
+              alt={fotosGaleria[fotoAtual]?.legenda || "Corte realizado"}
+              className="w-full h-full object-cover transition duration-700"
+            />
 
-<div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-<img src="/img/corte1.jpg" className="rounded-xl object-cover h-64 w-full transition duration-500 hover:scale-110"/>
-<img src="/img/corte2.jpg" className="rounded-xl object-cover h-64 w-full transition duration-500 hover:scale-110"/>
-<img src="/img/corte3.jpg" className="rounded-xl object-cover h-64 w-full transition duration-500 hover:scale-110"/>
+            {fotosGaleria[fotoAtual]?.legenda && (
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <p className="text-white text-lg md:text-xl font-semibold">
+                  {fotosGaleria[fotoAtual].legenda}
+                </p>
+              </div>
+            )}
+          </div>
 
-</div>
+          <div className="flex items-center justify-between px-5 py-4 bg-zinc-950">
+            <button
+              onClick={() =>
+                setFotoAtual((prev) =>
+                  prev === 0 ? fotosGaleria.length - 1 : prev - 1
+                )
+              }
+              className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl transition"
+            >
+              ←
+            </button>
 
+            <div className="flex gap-2">
+              {fotosGaleria.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setFotoAtual(index)}
+                  className={`w-3 h-3 rounded-full transition ${
+                    index === fotoAtual ? "bg-yellow-500" : "bg-zinc-600"
+                  }`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() =>
+                setFotoAtual((prev) => (prev + 1) % fotosGaleria.length)
+              }
+              className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl transition"
+            >
+              →
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="h-[320px] md:h-[420px] flex items-center justify-center text-zinc-500">
+          Nenhuma foto cadastrada ainda.
+        </div>
+      )}
+    </div>
+
+    <div className="flex justify-center mt-6">
+      <a
+        href="https://www.instagram.com/mb_barbearia001/"
+        target="_blank"
+        rel="noreferrer"
+        className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-400 transition"
+      >
+        Ver mais no Instagram
+      </a>
+    </div>
+  </div>
 </motion.section>
 
 
@@ -442,6 +540,7 @@ loading="lazy"
       >
         Falar no WhatsApp
       </a>
+
 
     </div>
 
