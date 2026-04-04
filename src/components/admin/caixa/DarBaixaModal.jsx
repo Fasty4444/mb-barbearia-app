@@ -2,6 +2,17 @@ import { useEffect, useState } from "react"
 import { supabase } from "../../../lib/supabase"
 import { formatarMoeda } from "../../../utils/caixa"
 
+function obterPrecoEfetivoServico(servico) {
+  const precoNormal = Number(servico?.preco || 0)
+  const precoPromocional = Number(servico?.preco_promocional || 0)
+
+  if (precoPromocional > 0 && precoPromocional < precoNormal) {
+    return precoPromocional
+  }
+
+  return precoNormal
+}
+
 export default function DarBaixaModal({
   aberto,
   onClose,
@@ -16,11 +27,11 @@ export default function DarBaixaModal({
   useEffect(() => {
     if (!aberto || !agendamento) return
 
-    setValorRecebido(
-      agendamento.valor_pago ??
-        agendamento.servicos?.preco ??
-        ""
-    )
+setValorRecebido(
+  agendamento.valor_pago ??
+    obterPrecoEfetivoServico(agendamento.servicos) ??
+    ""
+)
 
     setFormaPagamento(
       agendamento.forma_pagamento || "pix"
@@ -129,9 +140,9 @@ export default function DarBaixaModal({
             {agendamento.servicos?.nome || "Serviço"}
           </p>
 
-          <p className="text-sm text-zinc-400">
-            Valor sugerido: {formatarMoeda(agendamento.servicos?.preco || 0)}
-          </p>
+<p className="text-sm text-zinc-400">
+  Valor sugerido: {formatarMoeda(obterPrecoEfetivoServico(agendamento.servicos))}
+</p>
         </div>
 
         <input

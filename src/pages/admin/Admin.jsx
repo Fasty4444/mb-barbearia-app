@@ -455,7 +455,7 @@ function abrirNovoAgendamento(hora) {
         data,
         horario,
         status,
-        servicos(nome, preco),
+        sservicos(nome, preco, preco_promocional, duracao),
         barbeiros(nome)
       `)
       .eq("cliente_id", cliente.id)
@@ -575,7 +575,7 @@ async function buscar() {
   pago_em,
   duracao_personalizada,
   clientes(nome, telefone),
-  servicos(nome, preco, duracao),
+  servicos(nome, preco, preco_promocional, duracao),
   barbeiros(nome)
 `)
     .order("data", { ascending: true })
@@ -595,6 +595,17 @@ async function buscar() {
 
   
   setAgendamentos(data || [])
+}
+
+function obterPrecoEfetivoServico(servico) {
+  const precoNormal = Number(servico?.preco || 0)
+  const precoPromocional = Number(servico?.preco_promocional || 0)
+
+  if (precoPromocional > 0 && precoPromocional < precoNormal) {
+    return precoPromocional
+  }
+
+  return precoNormal
 }
 
   async function carregarAgendamentosCalendario() {
@@ -624,7 +635,7 @@ async function buscar() {
           caixa_id,
           pago_em,
           clientes(nome, telefone),
-          servicos(nome, preco, duracao),
+          servicos(nome, preco, preco_promocional, duracao),
           barbeiros(nome)
         `)
       .gte("data", formatarDataISO(inicio))
@@ -867,15 +878,15 @@ const agendamentosCancelados = agendamentosFiltrados
 const horariosOcupados = agendamentosAtivos.map(a => a.horario)
 const horariosDisponiveis = todosHorarios.filter(h => !horariosOcupados.includes(h))
 
-  const faturamentoPrevisto = agendamentosFiltrados.reduce((acc, item) => {
-    return acc + (item.servicos?.preco || 0)
-  }, 0)
+const faturamentoPrevisto = agendamentosFiltrados.reduce((acc, item) => {
+  return acc + obterPrecoEfetivoServico(item.servicos)
+}, 0)
 
-  const faturamentoRealizado = agendamentosFiltrados
-    .filter(a => a.status === "concluido")
-    .reduce((acc, item) => {
-      return acc + (item.servicos?.preco || 0)
-    }, 0)
+const faturamentoRealizado = agendamentosFiltrados
+  .filter(a => a.status === "concluido")
+  .reduce((acc, item) => {
+    return acc + obterPrecoEfetivoServico(item.servicos)
+  }, 0)
 
   const barbeirosUnicos = [
     ...new Set(agendamentos.map(a => a.barbeiros?.nome).filter(Boolean))
@@ -897,9 +908,9 @@ const proximo = agendamentosAtivos.find(isProximoHorario)
     )
   })
 
-  const totalGastoCliente = historico
-    .filter(item => item.status === "concluido")
-    .reduce((acc, item) => acc + (item.servicos?.preco || 0), 0)
+const totalGastoCliente = historico
+  .filter(item => item.status === "concluido")
+  .reduce((acc, item) => acc + obterPrecoEfetivoServico(item.servicos), 0)
 
   const totalAgendamentosCliente = historico.length
   const totalConcluidosCliente = historico.filter(item => item.status === "concluido").length

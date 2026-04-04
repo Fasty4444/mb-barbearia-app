@@ -173,7 +173,7 @@ export default function AgendaVisual() {
   pago_em,
   duracao_personalizada,
   clientes(nome, telefone),
-  servicos(nome, preco, duracao),
+  servicos(nome, preco, preco_promocional, duracao),
   barbeiros(nome)
 `)
       .eq("data", dataSelecionada)
@@ -230,7 +230,7 @@ const { data, error } = await supabase
     pago_em,
     duracao_personalizada,
     clientes(nome, telefone),
-    servicos(nome, preco, duracao),
+    servicos(nome, preco, preco_promocional, duracao),
     barbeiros(nome)
   `)
     .gte("data", inicio)
