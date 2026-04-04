@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 import { obterHorariosPorData } from "../../utils/horarios"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import DarBaixaModal from "../../components/admin/caixa/DarBaixaModal"
 import NovaMovimentacaoModal from "../../components/admin/caixa/NovaMovimentacaoModal"
 import { motion } from "framer-motion"
@@ -366,6 +366,7 @@ export default function Admin() {
   
 
   const navigate = useNavigate()
+  const location = useLocation()
 
   async function sairDaConta() {
   await supabase.auth.signOut()
@@ -546,41 +547,49 @@ async function salvarNovoAgendamentoAdmin() {
   }
 }
 
-  async function buscar() {
-    let query = supabase
-      .from("agendamentos")
-      .select(`
-        id,
-        data,
-        horario,
-        status,
-        lembrete_enviado,
-        push_lembrete_enviado,
-        push_lembrete_enviado_em,
-        push_status,
-        push_erro,
-        cliente_id,
-        servico_id,
-        barbeiro_id,
-        status_pagamento,
-        valor_pago,
-        forma_pagamento,
-        caixa_id,
-        pago_em,
-        clientes(nome, telefone),
-        servicos(nome, preco),
-        barbeiros(nome)
-      `)
-      .order("data", { ascending: true })
-      .order("horario", { ascending: true })
+async function buscar() {
+  let query = supabase
+    .from("agendamentos")
+    .select(`
+      id,
+      data,
+      horario,
+      status,
+      lembrete_enviado,
+      push_lembrete_enviado,
+      push_lembrete_enviado_em,
+      push_status,
+      push_erro,
+      cliente_id,
+      servico_id,
+      barbeiro_id,
+      status_pagamento,
+      valor_pago,
+      forma_pagamento,
+      caixa_id,
+      pago_em,
+      clientes(nome, telefone),
+      servicos(nome, preco, duracao),
+      barbeiros(nome)
+    `)
+    .order("data", { ascending: true })
+    .order("horario", { ascending: true })
 
-    if (dataSelecionada) {
-      query = query.eq("data", dataSelecionada)
-    }
-
-    const { data } = await query
-    setAgendamentos(data || [])
+  if (dataSelecionada) {
+    query = query.eq("data", dataSelecionada)
   }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.log("ERRO AO BUSCAR AGENDAMENTOS:", error)
+    setAgendamentos([])
+    return
+  }
+
+  console.log("AGENDAMENTOS CARREGADOS:", data)
+  setAgendamentos(data || [])
+}
 
   async function carregarAgendamentosCalendario() {
     const { inicio, fim } = getRangePorVisao(
@@ -609,7 +618,7 @@ async function salvarNovoAgendamentoAdmin() {
           caixa_id,
           pago_em,
           clientes(nome, telefone),
-          servicos(nome, preco),
+          servicos(nome, preco, duracao),
           barbeiros(nome)
         `)
       .gte("data", formatarDataISO(inicio))
@@ -625,6 +634,17 @@ async function salvarNovoAgendamentoAdmin() {
 
     setAgendamentosCalendario(data || [])
   }
+
+  useEffect(() => {
+  const params = new URLSearchParams(location.search)
+  const agenda = params.get("agenda")
+
+  if (agenda === "escolha") {
+    setAba("agenda")
+    setAgendaModo("")
+    navigate("/admin", { replace: true })
+  }
+}, [location.search, navigate])
 
   useEffect(() => {
     async function carregarHorarios() {
@@ -822,18 +842,24 @@ const { data } = await supabase
 
   const filtro = dataSelecionada || hoje
 
-  const agendamentosFiltrados = agendamentos
-    .filter(a => a.data === filtro)
-    .filter(a => !filtroStatus || a.status === filtroStatus)
-    .filter(a => !filtroBarbeiro || a.barbeiros?.nome === filtroBarbeiro)
-    .filter(a => {
-      if (filtroLembrete === "pendente") return !a.lembrete_enviado
-      if (filtroLembrete === "enviado") return a.lembrete_enviado
-      return true
-    })
+const agendamentosFiltrados = agendamentos
+  .filter(a => a.data === filtro)
+  .filter(a => !filtroBarbeiro || a.barbeiros?.nome === filtroBarbeiro)
+  .filter(a => {
+    if (filtroLembrete === "pendente") return !a.lembrete_enviado
+    if (filtroLembrete === "enviado") return a.lembrete_enviado
+    return true
+  })
 
-  const horariosOcupados = agendamentosFiltrados.map(a => a.horario)
-  const horariosDisponiveis = todosHorarios.filter(h => !horariosOcupados.includes(h))
+const agendamentosAtivos = agendamentosFiltrados
+  .filter(a => a.status !== "cancelado")
+  .filter(a => !filtroStatus || filtroStatus === "cancelado" ? true : a.status === filtroStatus)
+
+const agendamentosCancelados = agendamentosFiltrados
+  .filter(a => a.status === "cancelado")
+
+const horariosOcupados = agendamentosAtivos.map(a => a.horario)
+const horariosDisponiveis = todosHorarios.filter(h => !horariosOcupados.includes(h))
 
   const faturamentoPrevisto = agendamentosFiltrados.reduce((acc, item) => {
     return acc + (item.servicos?.preco || 0)
@@ -855,9 +881,7 @@ const { data } = await supabase
     return dataHora > agora && item.status !== "cancelado"
   }
 
-  const proximo = agendamentosFiltrados
-    .filter(item => item.status !== "cancelado")
-    .find(isProximoHorario)
+const proximo = agendamentosAtivos.find(isProximoHorario)
 
   const clientesFiltrados = clientes.filter(cliente => {
     const termo = busca.toLowerCase()
@@ -943,6 +967,12 @@ const { data } = await supabase
   const agendamentosDiaSelecionadoCalendario =
     mapaAgendamentosPorDia[diaCalendarioSelecionado]?.itens || []
 
+    const agendamentosDiaCalendarioAtivos =
+  agendamentosDiaSelecionadoCalendario.filter(item => item.status !== "cancelado")
+
+const agendamentosDiaCalendarioCancelados =
+  agendamentosDiaSelecionadoCalendario.filter(item => item.status === "cancelado")
+
   const diasMesCalendario = useMemo(() => {
     return getMonthGrid(criarDataLocal(dataCalendarioBase))
   }, [dataCalendarioBase])
@@ -998,17 +1028,17 @@ const { data } = await supabase
         <h2 className="text-xl font-bold mb-1">
           Agendamentos de {formatarDataBR(diaCalendarioSelecionado)}
         </h2>
-        <p className="text-zinc-400 text-sm mb-5">
-          {agendamentosDiaSelecionadoCalendario.length} item(ns) encontrado(s)
-        </p>
+<p className="text-zinc-400 text-sm mb-5">
+  {agendamentosDiaCalendarioAtivos.length} agendamento(s) ativo(s)
+</p>
 
-        {agendamentosDiaSelecionadoCalendario.length === 0 ? (
+        {agendamentosDiaCalendarioAtivos.length === 0 ? (
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5 text-zinc-400">
             Nenhum agendamento neste dia.
           </div>
         ) : (
           <div className="grid gap-4">
-            {agendamentosDiaSelecionadoCalendario.map(item => {
+            {agendamentosDiaCalendarioAtivos.map(item => {
               const corStatus =
                 item.status === "pendente"
                   ? "border-yellow-500"
@@ -1130,15 +1160,12 @@ const { data } = await supabase
     Dashboard
   </button>
 
-  <button
-    onClick={() => {
-      setAba("agenda")
-      setAgendaModo("")
-    }}
-    className={`p-2 rounded ${aba === "agenda" ? "bg-yellow-500 text-black" : ""}`}
-  >
-    Agenda
-  </button>
+<button
+  onClick={() => navigate("/admin/agenda-visual")}
+  className={`p-2 rounded ${aba === "agenda" ? "bg-yellow-500 text-black" : ""}`}
+>
+  Agenda
+</button>
 
   <button
     onClick={() => setAba("clientes")}
@@ -1318,7 +1345,7 @@ const { data } = await supabase
                   Escolha como deseja visualizar os agendamentos
                 </p>
 
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-3 gap-5">
                   <button
                     onClick={() => setAgendaModo("padrao")}
                     className="text-left bg-zinc-900 border border-zinc-800 hover:border-yellow-500 rounded-2xl p-6 transition"
@@ -1350,6 +1377,22 @@ const { data } = await supabase
                       Melhor para organização, planejamento e consulta rápida.
                     </div>
                   </button>
+
+                  <button
+  onClick={() => navigate("/admin/agenda-visual")}
+  className="text-left bg-zinc-900 border border-zinc-800 hover:border-yellow-500 rounded-2xl p-6 transition"
+>
+  <div className="text-4xl mb-4">🗓️</div>
+  <h2 className="text-xl font-bold mb-2 text-yellow-500">
+    Agenda visual
+  </h2>
+  <p className="text-zinc-300 mb-4">
+    Veja os horários em grade, com blocos visuais proporcionais à duração real de cada serviço.
+  </p>
+  <div className="text-sm text-zinc-500">
+    Melhor para visualizar espaços, duração e sequência do dia.
+  </div>
+</button>
                 </div>
               </div>
             )}
@@ -1382,7 +1425,7 @@ const { data } = await supabase
                     <option value="pendente">Pendente</option>
                     <option value="confirmado">Confirmado</option>
                     <option value="concluido">Concluído</option>
-                    <option value="cancelado">Cancelado</option>
+                    <option value="cancelado">Somente seção de cancelados</option>
                     <option value="faltou">Faltou</option>
                   </select>
 
@@ -1408,13 +1451,7 @@ const { data } = await supabase
                   </select>
                 </div>
 
-                {agendamentosFiltrados
-                  .filter(item =>
-                    filtroStatus === "cancelado"
-                      ? item.status === "cancelado"
-                      : item.status !== "cancelado"
-                  )
-                  .map(item => {
+                {agendamentosAtivos.map(item => {
                     const corStatus =
                       item.status === "pendente"
                         ? "border-yellow-500"
@@ -1546,8 +1583,169 @@ const { data } = await supabase
                           ))}
                         </div>
                       )}
+                      {agendamentosDiaCalendarioCancelados.length > 0 && (
+  <div className="mt-6">
+    <h3 className="text-lg font-bold text-red-400 mb-3">
+      Cancelados deste dia
+    </h3>
+
+    <div className="grid gap-4">
+      {agendamentosDiaCalendarioCancelados.map(item => {
+        const pushInfo = getPushInfo(item)
+
+        return (
+          <div
+            key={item.id}
+            className="bg-zinc-950 border border-red-500/40 rounded-xl p-4"
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <p className="font-bold text-white">
+                  {item.clientes?.nome || "Cliente"}
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {item.servicos?.nome} • {item.barbeiros?.nome}
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Cancelado, horário liberado na agenda
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs border ${pushInfo.classe}`}
+                  >
+                    {pushInfo.label}
+                  </div>
+
+                  {item.push_lembrete_enviado_em && (
+                    <p className="text-xs text-zinc-400">
+                      Enviado em: {formatarDataHoraPush(item.push_lembrete_enviado_em)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-left md:text-right">
+                <p className="text-red-400 font-bold">{item.horario}</p>
+                <p className="text-xs text-zinc-500 capitalize">{item.status}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4 flex-wrap items-start">
+              <StatusMenu
+                item={item}
+                statusMenuId={statusMenuId}
+                setStatusMenuId={setStatusMenuId}
+                onChange={handleStatusChange}
+              />
+
+              <button
+                onClick={() => abrirWhatsApp(item)}
+                className="px-3 py-2 rounded text-black bg-green-500"
+              >
+                WhatsApp
+              </button>
+
+              <button
+                onClick={() => abrirEditarAgendamento(item)}
+                className="bg-yellow-500 text-black px-3 py-2 rounded font-semibold"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
               </div>
             )}
+{agendamentosCancelados.length > 0 && (
+  <div className="mt-8">
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-xl font-bold text-red-400">
+        Cancelados do dia
+      </h2>
+      <span className="text-sm text-zinc-500">
+        {agendamentosCancelados.length} cancelado(s)
+      </span>
+    </div>
+
+    <div className="grid gap-3">
+      {agendamentosCancelados.map((item) => {
+        const pushInfo = getPushInfo(item)
+
+        return (
+          <div
+            key={item.id}
+            className="bg-zinc-950 p-5 rounded-xl border border-red-500/40"
+          >
+            <div className="flex justify-between gap-4">
+              <div>
+                <p className="font-bold text-white">{item.clientes?.nome}</p>
+                <p className="text-sm text-zinc-400">
+                  {item.servicos?.nome} • {item.barbeiros?.nome}
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Cancelado, horário liberado na agenda
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs border ${pushInfo.classe}`}
+                  >
+                    {pushInfo.label}
+                  </div>
+
+                  {item.push_lembrete_enviado_em && (
+                    <p className="text-xs text-zinc-400">
+                      Enviado em: {formatarDataHoraPush(item.push_lembrete_enviado_em)}
+                    </p>
+                  )}
+
+                  {item.push_status === "erro" && item.push_erro && (
+                    <p className="text-xs text-red-400 break-words">
+                      Erro: {item.push_erro}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-red-400 font-bold">{item.horario}</p>
+                <p className="text-xs text-zinc-500">{item.data}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4 flex-wrap">
+              <button
+                onClick={() => abrirWhatsApp(item)}
+                className="px-3 py-2 rounded bg-green-500 text-black font-semibold"
+              >
+                WhatsApp
+              </button>
+
+              <button
+                onClick={() => abrirEditarAgendamento(item)}
+                className="bg-yellow-500 text-black px-3 py-2 rounded font-semibold"
+              >
+                Editar
+              </button>
+
+              <StatusMenu
+                item={item}
+                statusMenuId={statusMenuId}
+                setStatusMenuId={setStatusMenuId}
+                onChange={handleStatusChange}
+              />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
 
             {agendaModo === "calendario" && (
               <div>
@@ -1632,7 +1830,7 @@ const { data } = await supabase
                     <option value="pendente">Pendente</option>
                     <option value="confirmado">Confirmado</option>
                     <option value="concluido">Concluído</option>
-                    <option value="cancelado">Cancelado</option>
+                    <option value="cancelado">Somente seção de cancelados</option>
                     <option value="faltou">Faltou</option>
                   </select>
                 </div>

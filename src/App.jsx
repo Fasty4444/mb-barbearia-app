@@ -27,6 +27,7 @@ import StandaloneAdminRedirect from "./components/StandaloneAdminRedirect"
 import LoginAdmin from "./pages/LoginAdmin"
 import ResetSenhaAdmin from "./pages/ResetSenhaAdmin"
 import PaginaCliente from "./pages/admin/PaginaCliente"
+import AgendaVisual from "./pages/admin/AgendaVisual"
 
 function App() {
   const [loading, setLoading] = useState(true)
@@ -62,6 +63,16 @@ function App() {
         <Route path="/cancelarCliente" element={<CancelarCliente />} />
         <Route path="/historico" element={<Historico />} />
         <Route path="/perfil" element={<Perfil />} />
+        
+
+        <Route
+  path="/admin/agenda-visual"
+  element={
+    <AdminRoute>
+      <AgendaVisual />
+    </AdminRoute>
+  }
+/>
 
         <Route
   path="/admin/pagina-cliente"

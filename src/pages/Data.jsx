@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "../lib/supabase"
 import { motion } from "framer-motion"
-import { obterHorariosPorData } from "../utils/horarios"
+
 
 function formatarHojeLocal() {
   const hoje = new Date()
@@ -22,53 +22,30 @@ export default function Data() {
 
   const [date, setDate] = useState(hojeFormatado)
   const [horariosOcupados, setHorariosOcupados] = useState([])
+  const [agendamentosDia, setAgendamentosDia] = useState([])
+  const [configFuncionamento, setConfigFuncionamento] = useState(null)
   const [diaBloqueado, setDiaBloqueado] = useState(false)
-  const [horariosBase, setHorariosBase] = useState([])
 
-  useEffect(() => {
-    async function carregarHorarios() {
-      const lista = await obterHorariosPorData(date)
-      setHorariosBase(lista)
-    }
-
-    carregarHorarios()
-  }, [date])
-
-  function horaParaMinutos(hora) {
-    const [h, m] = hora.split(":").map(Number)
-    return h * 60 + m
-  }
-
-  function bloquearPorDuracao(horarios, ocupados) {
-    const bloqueados = new Set()
-
-    ocupados.forEach((item) => {
-      if (!item?.horario) return
-
-      if (item.tipo === "bloqueio_manual") {
-        bloqueados.add(item.horario)
-        return
-      }
-
-      const inicio = horaParaMinutos(item.horario)
-      const fim = inicio + (item.duracao || 30)
-
-      horarios.forEach((h) => {
-        const atual = horaParaMinutos(h)
-
-        if (atual >= inicio && atual < fim) {
-          bloqueados.add(h)
-        }
-      })
-    })
-
-    return horarios.filter(h => !bloqueados.has(h))
-  }
 
   function criarDataLocal(dataString) {
     const [ano, mes, dia] = dataString.split("-").map(Number)
     return new Date(ano, mes - 1, dia)
   }
+
+  function horaParaMinutos(hora) {
+  const [h, m] = String(hora).slice(0, 5).split(":").map(Number)
+  return h * 60 + m
+}
+
+function minutosParaHora(min) {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+}
+
+function intervaloConflita(inicioA, fimA, inicioB, fimB) {
+  return inicioA < fimB && fimA > inicioB
+}
 
   function horarioPassado(data, horario) {
     const agora = new Date()
@@ -87,47 +64,58 @@ export default function Data() {
     }
   }, [])
 
-  useEffect(() => {
-    async function carregar() {
-      let query = supabase
-        .from("agendamentos")
-        .select("horario, servico_id, servicos(duracao)")
-        .eq("data", date)
-        .neq("status", "cancelado")
+/* ================= BUSCAR AGENDAMENTOS + FUNCIONAMENTO ================= */
 
-      if (barbeiro?.id) {
-        query = query.eq("barbeiro_id", barbeiro.id)
-      }
+useEffect(() => {
+  async function carregar() {
+    const diaSemana = criarDataLocal(date).getDay()
 
-      const { data, error } = await query
+    let query = supabase
+      .from("agendamentos")
+      .select(`
+        horario,
+        status,
+        servicos(duracao)
+      `)
+      .eq("data", date)
+      .neq("status", "cancelado")
 
-      if (error) {
-        console.log(error)
-        return
-      }
-
-      const { data: bloqueados } = await supabase
-        .from("bloqueios_horarios")
-        .select("horario")
-        .eq("data", date)
-
-      const ocupados = data?.map(i => ({
-        horario: i.horario,
-        duracao: i.servicos?.duracao || 30,
-        tipo: "agendamento"
-      })) || []
-
-      const bloqueadosLista = bloqueados?.map(i => ({
-        horario: i.horario,
-        duracao: 0,
-        tipo: "bloqueio_manual"
-      })) || []
-
-      setHorariosOcupados([...ocupados, ...bloqueadosLista])
+    if (barbeiro?.id) {
+      query = query.eq("barbeiro_id", barbeiro.id)
     }
 
-    carregar()
-  }, [date, barbeiro?.id])
+    const { data: agendamentos, error } = await query
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
+    const { data: bloqueados } = await supabase
+      .from("bloqueios_horarios")
+      .select("horario")
+      .eq("data", date)
+
+    const { data: funcionamento, error: erroFuncionamento } = await supabase
+      .from("horarios_funcionamento")
+      .select("*")
+      .eq("dia_semana", diaSemana)
+      .limit(1)
+      .single()
+
+    if (erroFuncionamento) {
+      console.log("Erro ao buscar funcionamento:", erroFuncionamento)
+      setConfigFuncionamento(null)
+    } else {
+      setConfigFuncionamento(funcionamento)
+    }
+
+    setAgendamentosDia(agendamentos || [])
+    setHorariosOcupados((bloqueados || []).map(i => i.horario))
+  }
+
+  carregar()
+}, [date, barbeiro?.id])
 
   useEffect(() => {
     async function verificarTudo() {
@@ -178,11 +166,58 @@ export default function Data() {
     })
   }
 
-  function obterDisponiveis() {
-    const base = filtrarHorariosPassados(horariosBase)
-    const livres = base.filter(h => !horariosOcupados.some(o => o.horario === h))
-    return bloquearPorDuracao(livres, horariosOcupados)
+function obterDisponiveis() {
+  const diaSemana = criarDataLocal(date).getDay()
+
+  if (diaSemana === 0) return []
+  if (!configFuncionamento || !configFuncionamento.ativo) return []
+  if (!servico?.duracao) return []
+
+  const inicioExpediente = horaParaMinutos(configFuncionamento.hora_inicio)
+  const fimExpediente = horaParaMinutos(configFuncionamento.hora_fim)
+  const duracaoServico = Number(servico.duracao)
+
+  const agendamentosConvertidos = agendamentosDia.map((item) => {
+    const inicio = horaParaMinutos(item.horario)
+    const duracao = Number(item.servicos?.duracao || 0)
+
+    return {
+      inicio,
+      fim: inicio + duracao
+    }
+  })
+
+  const bloqueiosConvertidos = horariosOcupados.map((hora) => {
+    const inicio = horaParaMinutos(hora)
+
+    return {
+      inicio,
+      fim: inicio + 1
+    }
+  })
+
+  const indisponiveis = [...agendamentosConvertidos, ...bloqueiosConvertidos]
+
+  let cursor = inicioExpediente
+  const horariosLivres = []
+
+  while (cursor + duracaoServico <= fimExpediente) {
+    const fimCandidato = cursor + duracaoServico
+
+    const conflitos = indisponiveis.filter((item) =>
+      intervaloConflita(cursor, fimCandidato, item.inicio, item.fim)
+    )
+
+    if (conflitos.length === 0) {
+      horariosLivres.push(minutosParaHora(cursor))
+      cursor += duracaoServico
+    } else {
+      cursor = Math.max(...conflitos.map((item) => item.fim))
+    }
   }
+
+  return filtrarHorariosPassados(horariosLivres)
+}
 
   const horarios = diaBloqueado ? [] : obterDisponiveis()
 

@@ -16,6 +16,7 @@ export default function Funcionamento(){
 
   const navigate = useNavigate()
   const [horarios, setHorarios] = useState([])
+  const [intervaloAgenda, setIntervaloAgenda] = useState(35)
 
   async function carregar(){
 
@@ -23,18 +24,21 @@ export default function Funcionamento(){
       .from("horarios_funcionamento")
       .select("*")
 
-    if(data && data.length > 0){
-      setHorarios(data)
-    }else{
+if (data && data.length > 0) {
+  const ordenados = [...data].sort((a, b) => a.dia_semana - b.dia_semana)
+  setHorarios(ordenados)
+  setIntervaloAgenda(Number(ordenados[0]?.intervalo || 35))
+} else {
       // cria padrão vazio
-const padrao = diasSemana.map((_, i)=>({
+const padrao = diasSemana.map((_, i) => ({
   dia_semana: i,
   ativo: false,
   hora_inicio: "08:00",
   hora_fim: "18:00",
-  intervalo: 30
+  intervalo: 35
 }))
       setHorarios(padrao)
+      setIntervaloAgenda(35)
     }
   }
 
@@ -73,7 +77,7 @@ async function salvar(){
       ativo: h.ativo,
       hora_inicio: h.hora_inicio,
       hora_fim: h.hora_fim,
-      intervalo: Number(h.intervalo)
+      intervalo: Number(intervaloAgenda)
     }))
   )
 
@@ -106,6 +110,25 @@ async function salvar(){
 
           <div />
         </div>
+
+<div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 mb-4">
+  <label className="block text-sm text-zinc-400 mb-2">
+    Intervalo Agenda (minutos)
+  </label>
+
+  <input
+    type="number"
+    min="5"
+    value={intervaloAgenda}
+    onChange={(e) => setIntervaloAgenda(e.target.value)}
+    className="w-full p-3 bg-zinc-800 rounded"
+    placeholder="Ex: 10, 15, 30"
+  />
+
+  <p className="text-xs text-zinc-500 mt-2">
+    Esse intervalo será usado na agenda do barbeiro.
+  </p>
+</div>
 
         {/* LISTA */}
         <div className="space-y-4">
@@ -146,13 +169,6 @@ async function salvar(){
                     />
                   </div>
 
-                  <input
-                    type="number"
-                    value={dia.intervalo}
-                    onChange={(e)=>atualizar(index, "intervalo", e.target.value)}
-                    className="w-full p-2 bg-zinc-800 rounded"
-                    placeholder="Intervalo (min)"
-                  />
                 </>
               )}
 
