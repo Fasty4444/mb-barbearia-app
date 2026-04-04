@@ -354,6 +354,7 @@ export default function Admin() {
 
   const [aniversariantesHoje, setAniversariantesHoje] = useState([])
   const [todosHorarios, setTodosHorarios] = useState([])
+  const [duracaoEditada, setDuracaoEditada] = useState("")
 
   const [dataCalendarioBase, setDataCalendarioBase] = useState(hoje)
   const [diaCalendarioSelecionado, setDiaCalendarioSelecionado] = useState(hoje)
@@ -413,12 +414,15 @@ export default function Admin() {
     return `${dia}/${mes}/${ano} (${idade} anos)`
   }
 
-  function abrirEditarAgendamento(item) {
-    setAgendamentoEditando(item)
-    setNovaData(item.data)
-    setNovoHorario(item.horario)
-    setServicoEditado(item.servico_id)
-  }
+function abrirEditarAgendamento(item) {
+  setAgendamentoEditando(item)
+  setNovaData(item.data)
+  setNovoHorario(item.horario)
+  setServicoEditado(item.servico_id)
+  setDuracaoEditada(
+    item.duracao_personalizada ?? item.servicos?.duracao ?? ""
+  )
+}
 
 function abrirNovoAgendamento(hora) {
   setNovoHorarioAdmin(hora)
@@ -486,14 +490,15 @@ function abrirNovoAgendamento(hora) {
   }
 
   async function salvarEdicaoAgendamento() {
-    await supabase
-      .from("agendamentos")
-      .update({
-        data: novaData,
-        horario: novoHorario,
-        servico_id: servicoEditado
-      })
-      .eq("id", agendamentoEditando.id)
+await supabase
+  .from("agendamentos")
+  .update({
+    data: novaData,
+    horario: novoHorario,
+    servico_id: servicoEditado,
+    duracao_personalizada: duracaoEditada === "" ? null : Number(duracaoEditada)
+  })
+  .eq("id", agendamentoEditando.id)
 
     setAgendamentoEditando(null)
     buscar()
@@ -550,28 +555,29 @@ async function salvarNovoAgendamentoAdmin() {
 async function buscar() {
   let query = supabase
     .from("agendamentos")
-    .select(`
-      id,
-      data,
-      horario,
-      status,
-      lembrete_enviado,
-      push_lembrete_enviado,
-      push_lembrete_enviado_em,
-      push_status,
-      push_erro,
-      cliente_id,
-      servico_id,
-      barbeiro_id,
-      status_pagamento,
-      valor_pago,
-      forma_pagamento,
-      caixa_id,
-      pago_em,
-      clientes(nome, telefone),
-      servicos(nome, preco, duracao),
-      barbeiros(nome)
-    `)
+.select(`
+  id,
+  data,
+  horario,
+  status,
+  lembrete_enviado,
+  push_lembrete_enviado,
+  push_lembrete_enviado_em,
+  push_status,
+  push_erro,
+  cliente_id,
+  servico_id,
+  barbeiro_id,
+  status_pagamento,
+  valor_pago,
+  forma_pagamento,
+  caixa_id,
+  pago_em,
+  duracao_personalizada,
+  clientes(nome, telefone),
+  servicos(nome, preco, duracao),
+  barbeiros(nome)
+`)
     .order("data", { ascending: true })
     .order("horario", { ascending: true })
 
@@ -587,7 +593,7 @@ async function buscar() {
     return
   }
 
-  console.log("AGENDAMENTOS CARREGADOS:", data)
+  
   setAgendamentos(data || [])
 }
 
@@ -2180,60 +2186,88 @@ const agendamentosDiaCalendarioCancelados =
           </div>
         )}
 
-        {agendamentoEditando && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-md border border-zinc-800">
-              <h2 className="text-xl mb-4">Editar agendamento</h2>
+{agendamentoEditando && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div className="bg-zinc-900 p-6 rounded-xl w-full max-w-md border border-zinc-800">
+      <h2 className="text-xl mb-4">Editar agendamento</h2>
 
-              <select
-                value={servicoEditado}
-                onChange={(e) => setServicoEditado(e.target.value)}
-                className="w-full p-3 mb-4 bg-zinc-800 rounded"
-              >
-                {servicos.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.nome} — R$ {s.preco}
-                  </option>
-                ))}
-              </select>
+      <select
+        value={servicoEditado}
+        onChange={(e) => {
+          setServicoEditado(e.target.value)
 
-              <input
-                type="date"
-                value={novaData}
-                onChange={(e) => setNovaData(e.target.value)}
-                className="w-full p-3 mb-4 bg-zinc-800 rounded"
-              />
+          const servicoSelecionado = servicos.find(
+            (s) => String(s.id) === String(e.target.value)
+          )
 
-              <select
-                value={novoHorario}
-                onChange={(e) => setNovoHorario(e.target.value)}
-                className="w-full p-3 mb-4 bg-zinc-800 rounded"
-              >
-                {horariosEdicao.map(h => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
+          setDuracaoEditada(servicoSelecionado?.duracao ?? "")
+        }}
+        className="w-full p-3 mb-4 bg-zinc-800 rounded"
+      >
+        {servicos.map(s => (
+          <option key={s.id} value={s.id}>
+            {s.nome} — R$ {s.preco}
+          </option>
+        ))}
+      </select>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={salvarEdicaoAgendamento}
-                  className="bg-green-500 text-black px-4 py-2 rounded"
-                >
-                  Salvar
-                </button>
+      <div className="mb-4">
+        <label className="block text-sm text-zinc-400 mb-2">
+          Duração deste agendamento (min)
+        </label>
 
-                <button
-                  onClick={() => setAgendamentoEditando(null)}
-                  className="bg-zinc-700 px-4 py-2 rounded"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={duracaoEditada}
+          onChange={(e) => setDuracaoEditada(e.target.value)}
+          className="w-full p-3 bg-zinc-800 rounded"
+          placeholder="Ex: 50"
+        />
+
+        <p className="text-xs text-zinc-500 mt-2">
+          Essa duração altera apenas este agendamento, sem mudar o serviço cadastrado.
+        </p>
+      </div>
+
+      <input
+        type="date"
+        value={novaData}
+        onChange={(e) => setNovaData(e.target.value)}
+        className="w-full p-3 mb-4 bg-zinc-800 rounded"
+      />
+
+      <select
+        value={novoHorario}
+        onChange={(e) => setNovoHorario(e.target.value)}
+        className="w-full p-3 mb-4 bg-zinc-800 rounded"
+      >
+        {horariosEdicao.map(h => (
+          <option key={h} value={h}>
+            {h}
+          </option>
+        ))}
+      </select>
+
+      <div className="flex gap-2">
+        <button
+          onClick={salvarEdicaoAgendamento}
+          className="bg-green-500 text-black px-4 py-2 rounded"
+        >
+          Salvar
+        </button>
+
+        <button
+          onClick={() => setAgendamentoEditando(null)}
+          className="bg-zinc-700 px-4 py-2 rounded"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
 {novoAgendamentoAberto && (
   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
