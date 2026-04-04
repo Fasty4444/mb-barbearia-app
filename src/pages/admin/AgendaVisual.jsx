@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../../lib/supabase"
 import DarBaixaModal from "../../components/admin/caixa/DarBaixaModal"
-import { obterHorariosPorData } from "../../utils/horarios"
+import {
+  obterHorariosPorData,
+  obterHorariosDisponiveisEdicao
+} from "../../utils/horarios"
 
 function formatarHojeLocal() {
   const hoje = new Date()
@@ -257,19 +260,36 @@ useEffect(() => {
   }
 }, [visao, dataSelecionada])
 
-  useEffect(() => {
-    async function carregarHorariosEdicao() {
-      if (!agendamentoEditando || !novaData) {
-        setHorariosEdicao([])
-        return
-      }
-
-      const lista = await obterHorariosPorData(novaData)
-      setHorariosEdicao(Array.isArray(lista) ? lista : [])
+useEffect(() => {
+  async function carregarHorariosEdicao() {
+    if (!agendamentoEditando || !novaData || !servicoEditado) {
+      setHorariosEdicao([])
+      return
     }
 
-    carregarHorariosEdicao()
-  }, [agendamentoEditando, novaData])
+    const servicoSelecionado = servicos.find(
+      (s) => String(s.id) === String(servicoEditado)
+    )
+
+    const duracaoBase = Number(servicoSelecionado?.duracao || 0)
+    const duracaoFinal = Number(duracaoEditada || duracaoBase || 0)
+
+    if (!duracaoFinal) {
+      setHorariosEdicao([])
+      return
+    }
+
+    const lista = await obterHorariosDisponiveisEdicao({
+      data: novaData,
+      duracaoServico: duracaoFinal,
+      agendamentoIgnorarId: agendamentoEditando.id
+    })
+
+    setHorariosEdicao(Array.isArray(lista) ? lista : [])
+  }
+
+  carregarHorariosEdicao()
+}, [agendamentoEditando, novaData, servicoEditado, duracaoEditada, servicos])
 
   useEffect(() => {
     async function carregarServicos() {
@@ -483,16 +503,19 @@ function abrirEditarAgendamento(item) {
 
       if (erroCliente) throw erroCliente
 
-      const { error: erroAgendamento } = await supabase
-        .from("agendamentos")
-        .insert({
-          cliente_id: clienteNovo.id,
-          servico_id: novoServicoId,
-          data: novaDataAgendamento,
-          horario: novoHorarioAgendamento,
-          status: "confirmado",
-          lembrete_enviado: false
-        })
+const BARBEIRO_FIXO_ID = "abe98043-5925-4ad7-bb09-41f50c12f71f"
+
+const { error: erroAgendamento } = await supabase
+  .from("agendamentos")
+  .insert({
+    cliente_id: clienteNovo.id,
+    servico_id: novoServicoId,
+    barbeiro_id: BARBEIRO_FIXO_ID,
+    data: novaDataAgendamento,
+    horario: novoHorarioAgendamento,
+    status: "confirmado",
+    lembrete_enviado: false
+  })
 
       if (erroAgendamento) throw erroAgendamento
 

@@ -16,6 +16,10 @@ function minutosParaHora(min) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
 }
 
+function intervaloConflita(inicioA, fimA, inicioB, fimB) {
+  return inicioA < fimB && fimA > inicioB
+}
+
 export async function obterHorariosPorData(data) {
   const diaSemana = criarDataLocal(data).getDay()
 
@@ -38,6 +42,97 @@ export async function obterHorariosPorData(data) {
 
   for (let t = inicio; t + intervalo <= fim; t += intervalo) {
     horarios.push(minutosParaHora(t))
+  }
+
+  return horarios
+}
+
+export async function obterHorariosDisponiveisEdicao({
+  data,
+  duracaoServico,
+  agendamentoIgnorarId = null
+}) {
+  if (!data || !duracaoServico) return []
+
+  const diaSemana = criarDataLocal(data).getDay()
+
+  const { data: config, error: erroConfig } = await supabase
+    .from("horarios_funcionamento")
+    .select("*")
+    .eq("dia_semana", diaSemana)
+    .limit(1)
+    .single()
+
+  if (erroConfig || !config || !config.ativo) {
+    return []
+  }
+
+  const { data: agendamentosDia, error: erroAgendamentos } = await supabase
+    .from("agendamentos")
+    .select(`
+      id,
+      horario,
+      status,
+      duracao_personalizada,
+      servicos(duracao)
+    `)
+    .eq("data", data)
+    .neq("status", "cancelado")
+
+  if (erroAgendamentos) {
+    console.log("Erro ao buscar agendamentos da edição:", erroAgendamentos)
+    return []
+  }
+
+  const { data: bloqueiosHorarios, error: erroBloqueios } = await supabase
+    .from("bloqueios_horarios")
+    .select("horario")
+    .eq("data", data)
+
+  if (erroBloqueios) {
+    console.log("Erro ao buscar bloqueios da edição:", erroBloqueios)
+    return []
+  }
+
+  const inicioExpediente = horaParaMinutos(config.hora_inicio)
+  const fimExpediente = horaParaMinutos(config.hora_fim)
+
+  const agendamentosConvertidos = (agendamentosDia || [])
+    .filter((item) => item.id !== agendamentoIgnorarId)
+    .map((item) => {
+      const inicio = horaParaMinutos(item.horario)
+      const duracao = Number(
+        item.duracao_personalizada || item.servicos?.duracao || 0
+      )
+
+      return {
+        inicio,
+        fim: inicio + duracao
+      }
+    })
+
+  const bloqueiosConvertidos = (bloqueiosHorarios || []).map((item) => {
+    const inicio = horaParaMinutos(item.horario)
+    return {
+      inicio,
+      fim: inicio + 1
+    }
+  })
+
+  const indisponiveis = [...agendamentosConvertidos, ...bloqueiosConvertidos]
+
+  const horarios = []
+
+  for (let cursor = inicioExpediente; cursor + duracaoServico <= fimExpediente; cursor += 5) {
+    const fimCandidato = cursor + duracaoServico
+
+    const temConflito = indisponiveis.some((item) =>
+      intervaloConflita(cursor, fimCandidato, item.inicio, item.fim)
+    )
+
+    if (!temConflito) {
+      horarios.push(minutosParaHora(cursor))
+    }
   }
 
   return horarios

@@ -72,11 +72,12 @@ useEffect(() => {
 
     let query = supabase
       .from("agendamentos")
-      .select(`
-        horario,
-        status,
-        servicos(duracao)
-      `)
+.select(`
+  horario,
+  status,
+  duracao_personalizada,
+  servicos(duracao)
+`)
       .eq("data", date)
       .neq("status", "cancelado")
 
@@ -177,15 +178,17 @@ function obterDisponiveis() {
   const fimExpediente = horaParaMinutos(configFuncionamento.hora_fim)
   const duracaoServico = Number(servico.duracao)
 
-  const agendamentosConvertidos = agendamentosDia.map((item) => {
-    const inicio = horaParaMinutos(item.horario)
-    const duracao = Number(item.servicos?.duracao || 0)
+const agendamentosConvertidos = agendamentosDia.map((item) => {
+  const inicio = horaParaMinutos(item.horario)
+  const duracao = Number(
+    item.duracao_personalizada || item.servicos?.duracao || 0
+  )
 
-    return {
-      inicio,
-      fim: inicio + duracao
-    }
-  })
+  return {
+    inicio,
+    fim: inicio + duracao
+  }
+})
 
   const bloqueiosConvertidos = horariosOcupados.map((hora) => {
     const inicio = horaParaMinutos(hora)
