@@ -208,30 +208,31 @@ async function carregarSemana() {
     fim = formatarDataISO(dias[6])
   }
 
-  const { data, error } = await supabase
-    .from("agendamentos")
-    .select(`
-      id,
-      data,
-      horario,
-      status,
-      lembrete_enviado,
-      push_lembrete_enviado,
-      push_lembrete_enviado_em,
-      push_status,
-      push_erro,
-      cliente_id,
-      servico_id,
-      barbeiro_id,
-      status_pagamento,
-      valor_pago,
-      forma_pagamento,
-      caixa_id,
-      pago_em,
-      clientes(nome, telefone),
-      servicos(nome, preco, duracao),
-      barbeiros(nome)
-    `)
+const { data, error } = await supabase
+  .from("agendamentos")
+  .select(`
+    id,
+    data,
+    horario,
+    status,
+    lembrete_enviado,
+    push_lembrete_enviado,
+    push_lembrete_enviado_em,
+    push_status,
+    push_erro,
+    cliente_id,
+    servico_id,
+    barbeiro_id,
+    status_pagamento,
+    valor_pago,
+    forma_pagamento,
+    caixa_id,
+    pago_em,
+    duracao_personalizada,
+    clientes(nome, telefone),
+    servicos(nome, preco, duracao),
+    barbeiros(nome)
+  `)
     .gte("data", inicio)
     .lte("data", fim)
     .order("data", { ascending: true })
@@ -294,6 +295,31 @@ useEffect(() => {
     if (!novoAgendamentoAberto) return
     carregarHorariosNovoAgendamento(novaDataAgendamento, novoServicoId)
   }, [novoAgendamentoAberto, novaDataAgendamento, novoServicoId])
+
+  useEffect(() => {
+  const channel = supabase
+    .channel("realtime-agendamentos-agenda-visual")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "agendamentos",
+      },
+      async () => {
+        await carregarTudo()
+
+        if (visao === "semana" || visao === "mes") {
+          await carregarSemana()
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [dataSelecionada, visao])
 
   function mudarDia(direcao) {
     const base = criarDataLocal(dataSelecionada)
