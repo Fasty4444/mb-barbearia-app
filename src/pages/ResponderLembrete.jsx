@@ -18,7 +18,7 @@ export default function ResponderLembrete() {
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <h1 className="text-2xl font-bold text-center mb-3">
-          MB Barbearia
+          MB Prime - Barbearia
         </h1>
 
         <p className="text-zinc-300 text-center mb-6">

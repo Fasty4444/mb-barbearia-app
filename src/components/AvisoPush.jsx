@@ -87,7 +87,7 @@ export default function AvisoPush() {
                   Ative as notificações
                 </h2>
                 <p className="text-sm text-zinc-400">
-                  Receba lembretes do seu horário na MB Barbearia
+                  Receba lembretes do seu horário na MB Prime - Barbearia
                 </p>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function AvisoPush() {
                   <p className="font-semibold">Passo 3</p>
                 </div>
                 <p className="text-sm text-zinc-300">
-                  Abra a MB Barbearia pelo novo ícone e ative as notificações.
+                  Abra a MB Prime - Barbearia pelo novo ícone e ative as notificações.
                 </p>
               </div>
             </div>
@@ -205,7 +205,7 @@ export default function AvisoPush() {
                   Último passo no iPhone
                 </h2>
                 <p className="text-sm text-zinc-400">
-                  Agora abra a MB Barbearia pela Tela Inicial
+                  Agora abra a MB Prime - Barbearia pela Tela Inicial
                 </p>
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function AvisoPush() {
             </div>
 
             <p className="text-zinc-300 mb-4">
-              Agora que a MB Barbearia está na sua Tela Inicial, ative as notificações para receber lembretes do seu horário.
+              Agora que a MB Prime - Barbearia está na sua Tela Inicial, ative as notificações para receber lembretes do seu horário.
             </p>
 
             {suportaNotificacao ? (

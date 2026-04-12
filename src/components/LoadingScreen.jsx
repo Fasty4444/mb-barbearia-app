@@ -20,7 +20,7 @@ export default function LoadingScreen() {
         />
 
         <h1 className="text-3xl font-bold text-yellow-500">
-          MB Barbearia
+          MB Prime - Barbearia
         </h1>
 
         <p className="text-zinc-400 mt-2">

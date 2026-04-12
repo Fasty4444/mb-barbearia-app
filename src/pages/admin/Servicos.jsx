@@ -19,14 +19,16 @@ function temPromocao(servico) {
 }
 
 export default function Servicos(){
-  const [servicos, setServicos] = useState([])
-  const [editandoId, setEditandoId] = useState(null)
-  const [nome, setNome] = useState("")
-  const [preco, setPreco] = useState("")
-  const [precoPromocional, setPrecoPromocional] = useState("")
-  const [duracao, setDuracao] = useState("")
-  const [modalNovo, setModalNovo] = useState(false)
-  const navigate = useNavigate()
+const [servicos, setServicos] = useState([])
+const [editandoId, setEditandoId] = useState(null)
+const [nome, setNome] = useState("")
+const [preco, setPreco] = useState("")
+const [precoPromocional, setPrecoPromocional] = useState("")
+const [duracao, setDuracao] = useState("")
+const [modalNovo, setModalNovo] = useState(false)
+const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
+const [servicoExcluir, setServicoExcluir] = useState(null)
+const navigate = useNavigate()
 
   async function carregar(){
     const { data } = await supabase
@@ -65,6 +67,29 @@ export default function Servicos(){
     carregar()
   }
 
+  function abrirModalExcluir(servico) {
+  setServicoExcluir(servico)
+  setModalExcluirAberto(true)
+}
+
+async function excluirServico() {
+  if (!servicoExcluir) return
+
+  const { error } = await supabase
+    .from("servicos")
+    .delete()
+    .eq("id", servicoExcluir.id)
+
+  if (error) {
+    alert("Erro ao excluir serviço.")
+    return
+  }
+
+  setModalExcluirAberto(false)
+  setServicoExcluir(null)
+  carregar()
+}
+
   async function adicionar(){
     if(!nome || !preco || !duracao){
       alert("Preencha nome, valor total e duração")
@@ -92,7 +117,7 @@ export default function Servicos(){
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6">
           <button
             onClick={() => navigate("/admin")}
             className="text-zinc-400 hover:text-white transition"
@@ -100,11 +125,11 @@ export default function Servicos(){
             ← Voltar
           </button>
 
-          <h1 className="text-3xl font-bold">Serviços</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Serviços</h1>
 
           <button
             onClick={()=>setModalNovo(true)}
-            className="bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold"
+            className="bg-yellow-500 text-black px-3 md:px-4 py-2 rounded-lg font-bold whitespace-nowrap"
           >
             + Novo
           </button>
@@ -119,11 +144,11 @@ export default function Servicos(){
             return (
               <div
                 key={s.id}
-                className={`bg-zinc-900 border rounded-2xl p-5 flex justify-between items-center gap-4 ${
-                  s.ativo ? "border-zinc-800" : "border-red-500 opacity-50"
-                }`}
+className={`bg-zinc-900 border rounded-2xl p-4 md:p-5 flex flex-col md:flex-row md:justify-between md:items-center gap-4 ${
+  s.ativo ? "border-zinc-800" : "border-red-500 opacity-50"
+}`}
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   {estaEditando ? (
                     <>
                       <input
@@ -185,47 +210,54 @@ export default function Servicos(){
                   )}
                 </div>
 
-                <div className="flex gap-2 ml-4 shrink-0">
+                <div className="w-full md:w-auto flex flex-wrap gap-2 md:ml-4 shrink-0">
                   {estaEditando ? (
                     <>
                       <button
                         onClick={()=>salvarEdicao(s.id)}
-                        className="bg-green-500 px-3 py-2 rounded"
+                        className="bg-green-500 px-3 py-2 rounded flex-1 min-w-[92px] md:flex-none"
                       >
                         Salvar
                       </button>
 
                       <button
                         onClick={()=>setEditandoId(null)}
-                        className="bg-zinc-700 px-3 py-2 rounded"
+                        className="bg-zinc-700 px-3 py-2 rounded flex-1 min-w-[92px] md:flex-none"
                       >
                         Cancelar
                       </button>
                     </>
                   ) : (
-                    <>
-                      <button
-                        onClick={()=>{
-                          setEditandoId(s.id)
-                          setNome(s.nome)
-                          setPreco(s.preco)
-                          setPrecoPromocional(s.preco_promocional ?? "")
-                          setDuracao(s.duracao)
-                        }}
-                        className="bg-yellow-500 text-black px-3 py-2 rounded"
-                      >
-                        Editar
-                      </button>
+<>
+  <button
+    onClick={()=>{
+      setEditandoId(s.id)
+      setNome(s.nome)
+      setPreco(s.preco)
+      setPrecoPromocional(s.preco_promocional ?? "")
+      setDuracao(s.duracao)
+    }}
+    className="bg-yellow-500 text-black px-3 py-2 rounded flex-1 min-w-[92px] md:flex-none"
+  >
+    Editar
+  </button>
 
-                      <button
-                        onClick={()=>toggleAtivo(s)}
-                        className={`px-3 py-2 rounded ${
-                          s.ativo ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      >
-                        {s.ativo ? "Desativar" : "Ativar"}
-                      </button>
-                    </>
+  <button
+    onClick={()=>toggleAtivo(s)}
+className={`px-3 py-2 rounded flex-1 min-w-[92px] md:flex-none ${
+  s.ativo ? "bg-red-500" : "bg-green-500"
+}`}
+  >
+    {s.ativo ? "Desativar" : "Ativar"}
+  </button>
+
+  <button
+    onClick={() => abrirModalExcluir(s)}
+    className="bg-zinc-700 text-white px-3 py-2 rounded flex-1 min-w-[92px] md:flex-none"
+  >
+    Excluir
+  </button>
+</>
                   )}
                 </div>
               </div>
@@ -288,6 +320,42 @@ export default function Servicos(){
           </div>
         </div>
       )}
+
+      {modalExcluirAberto && servicoExcluir && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 p-6 rounded-2xl w-full max-w-md border border-zinc-800">
+            <h2 className="text-xl font-bold mb-3">Excluir serviço</h2>
+
+            <p className="text-zinc-300 mb-6">
+              Tem certeza que deseja excluir o serviço{" "}
+              <span className="font-bold text-white">
+                {servicoExcluir.nome}
+              </span>
+              ?
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={excluirServico}
+                className="bg-red-500 text-white px-4 py-3 rounded w-full font-semibold"
+              >
+                Confirmar exclusão
+              </button>
+
+              <button
+                onClick={() => {
+                  setModalExcluirAberto(false)
+                  setServicoExcluir(null)
+                }}
+                className="bg-zinc-700 px-4 py-3 rounded w-full"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

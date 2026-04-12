@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 import { obterHorariosPorData } from "../../utils/horarios"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import DarBaixaModal from "../../components/admin/caixa/DarBaixaModal"
 import NovaMovimentacaoModal from "../../components/admin/caixa/NovaMovimentacaoModal"
 import { motion } from "framer-motion"
@@ -367,7 +367,6 @@ export default function Admin() {
   
 
   const navigate = useNavigate()
-  const location = useLocation()
 
   async function sairDaConta() {
   await supabase.auth.signOut()
@@ -652,16 +651,6 @@ function obterPrecoEfetivoServico(servico) {
     setAgendamentosCalendario(data || [])
   }
 
-  useEffect(() => {
-  const params = new URLSearchParams(location.search)
-  const agenda = params.get("agenda")
-
-  if (agenda === "escolha") {
-    setAba("agenda")
-    setAgendaModo("")
-    navigate("/admin", { replace: true })
-  }
-}, [location.search, navigate])
 
   useEffect(() => {
     async function carregarHorarios() {
@@ -798,7 +787,7 @@ window.location.href = url
 
       const mensagem = `Olá ${item.clientes?.nome}!
 
-Você tem um horário na MB Barbearia 💈
+Você tem um horário na MB Prime - Barbearia 💈
 
 📅 ${formatarDataBR(item.data)}
 ⏰ ${item.horario}
@@ -1352,6 +1341,8 @@ const agendamentosDiaCalendarioCancelados =
             )}
           </div>
         )}
+
+{/*
 
         {aba === "agenda" && (
           <div>
@@ -1969,7 +1960,7 @@ const agendamentosDiaCalendarioCancelados =
             )}
           </div>
         )}
-
+*/}
         {aba === "clientes" && (
           <div>
             <h1 className="text-3xl mb-6">Clientes</h1>

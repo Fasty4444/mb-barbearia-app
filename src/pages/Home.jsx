@@ -14,6 +14,7 @@ const navigate = useNavigate()
 const [menuAberto, setMenuAberto] = useState(false)
 const [fotosGaleria, setFotosGaleria] = useState([])
 const [fotoAtual, setFotoAtual] = useState(0)
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
 useEffect(() => {
   buscarGaleria()
@@ -154,7 +155,7 @@ return(
   </a>
 
   <p className="text-xs text-zinc-500 text-center">
-    MB Barbearia ©
+    MB PRIME ©
   </p>
 
 </div>
@@ -179,7 +180,7 @@ className="text-white text-2xl"
 </button>
 
 <h1 className="text-1xl font-bold tracking-wide">
-<span className="text-yellow-500">MB</span> Barbearia
+<span className="text-yellow-500">MB</span> Prime - Barbearia
 </h1>
 
 </div>
@@ -195,7 +196,7 @@ Agendar horário
 
 </nav>
 
-<AvisoPush />
+{!isIOS && <AvisoPush />}
 
 {/* HERO */}
 
@@ -241,7 +242,7 @@ className="relative z-10 text-zinc-400 max-w-xl mb-10 text-lg"
 >
 
 Agende seu horário online e tenha uma experiência premium
-na MB Barbearia.
+na MB PRIME.
 
 </motion.p>
 

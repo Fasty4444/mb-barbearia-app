@@ -1,7 +1,7 @@
 {
-  "name": "MB Barbearia",
-  "short_name": "MB Barbearia",
-  "description": "Agende seu horário online na MB Barbearia.",
+  "name": "MB Prime - Barbearia",
+  "short_name": "MB Prime - Barbearia",
+  "description": "Agende seu horário online na MB Prime - Barbearia.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

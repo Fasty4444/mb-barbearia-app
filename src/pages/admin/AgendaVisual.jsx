@@ -74,6 +74,19 @@ function intervaloConflita(inicioA, fimA, inicioB, fimB) {
   return inicioA < fimB && fimA > inicioB
 }
 
+function horarioPodeSerUsado({ horario, duracaoServico, indisponiveis, fimExpediente }) {
+  const inicio = horaParaMinutos(horario)
+  const fim = inicio + duracaoServico
+
+  if (fim > fimExpediente) return false
+
+  const temConflito = indisponiveis.some((item) =>
+    intervaloConflita(inicio, fim, item.inicio, item.fim)
+  )
+
+  return !temConflito
+}
+
 function getPushInfo(item) {
   if (item.push_status === "ignorado_whatsapp") {
     return {
@@ -311,10 +324,14 @@ useEffect(() => {
     carregarServicos()
   }, [])
 
-  useEffect(() => {
-    if (!novoAgendamentoAberto) return
-    carregarHorariosNovoAgendamento(novaDataAgendamento, novoServicoId)
-  }, [novoAgendamentoAberto, novaDataAgendamento, novoServicoId])
+useEffect(() => {
+  if (!novoAgendamentoAberto) return
+  carregarHorariosNovoAgendamento(
+    novaDataAgendamento,
+    novoServicoId,
+    novoHorarioAgendamento
+  )
+}, [novoAgendamentoAberto, novaDataAgendamento, novoServicoId])
 
   useEffect(() => {
   const channel = supabase
@@ -388,16 +405,18 @@ function abrirEditarAgendamento(item) {
     return `${horas}h ${mins}min`
   }
 
-  function abrirNovoAgendamento() {
-    setNovoAgendamentoAberto(true)
-    setNovoClienteNome("")
-    setNovoServicoId("")
-    setNovaDataAgendamento(dataSelecionada)
-    setNovoHorarioAgendamento("")
-    setHorariosNovoAgendamento([])
-  }
+function abrirNovoAgendamento(dataBase = dataSelecionada, horarioSelecionado = "") {
+  setNovoAgendamentoAberto(true)
+  setNovoClienteNome("")
+  setNovoServicoId("")
+  setNovaDataAgendamento(dataBase)
+  setNovoHorarioAgendamento(horarioSelecionado)
+  setHorariosNovoAgendamento(
+    horarioSelecionado ? [horarioSelecionado] : []
+  )
+}
 
-  async function carregarHorariosNovoAgendamento(dataBase, servicoId) {
+  async function carregarHorariosNovoAgendamento(dataBase, servicoId, horarioPreservado = "") {
     const duracaoServico = obterDuracaoServicoPorId(servicoId)
 
     if (!dataBase || !servicoId || !duracaoServico) {
@@ -481,7 +500,31 @@ function abrirEditarAgendamento(item) {
       }
     }
 
-    setHorariosNovoAgendamento(horarios)
+let horariosFinais = [...horarios]
+
+if (
+  horarioPreservado &&
+  !horariosFinais.includes(horarioPreservado) &&
+  horarioPodeSerUsado({
+    horario: horarioPreservado,
+    duracaoServico,
+    indisponiveis,
+    fimExpediente
+  })
+) {
+  horariosFinais.push(horarioPreservado)
+  horariosFinais.sort((a, b) => horaParaMinutos(a) - horaParaMinutos(b))
+}
+
+setHorariosNovoAgendamento(horariosFinais)
+
+if (horarioPreservado && horariosFinais.includes(horarioPreservado)) {
+  setNovoHorarioAgendamento(horarioPreservado)
+} else if (novoHorarioAgendamento && horariosFinais.includes(novoHorarioAgendamento)) {
+  setNovoHorarioAgendamento(novoHorarioAgendamento)
+} else {
+  setNovoHorarioAgendamento("")
+}
   }
 
   async function salvarNovoAgendamento() {
@@ -618,7 +661,7 @@ Que tal reagendar?
 
       const mensagem = `Olá ${item.clientes?.nome}!
 
-Você tem um horário na MB Barbearia 💈
+Você tem um horário na MB Prime - Barbearia 💈
 
 📅 ${formatarDataBR(item.data)}
 ⏰ ${item.horario}
@@ -729,10 +772,10 @@ const itensDoDia = agendamentosSemana
     <div className="min-h-screen bg-black text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
 <button
-  onClick={() => navigate("/admin?agenda=escolha")}
+  onClick={() => navigate("/admin")}
   className="text-zinc-400 hover:text-white mb-4"
 >
-  ← Voltar para escolha
+  ← Voltar para o dashboard
 </button>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -926,7 +969,7 @@ const itensDoDia = agendamentosSemana
 })()}
           {visao === "dia" && (
             <div className="relative border border-zinc-800 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-[90px_1fr] bg-zinc-950 border-b border-zinc-800">
+              <div className="grid grid-cols-[80px_1fr] bg-zinc-950 border-b border-zinc-800">
                 <div className="p-3 border-r border-zinc-800 text-zinc-500 font-semibold">
                   Horário
                 </div>
@@ -935,7 +978,7 @@ const itensDoDia = agendamentosSemana
                 </div>
               </div>
 
-              <div className="grid grid-cols-[90px_1fr]">
+              <div className="grid grid-cols-[80px_1fr]">
                 <div className="border-r border-zinc-800 bg-zinc-950">
                   {slots.map((slot) => (
                     <div
@@ -947,38 +990,57 @@ const itensDoDia = agendamentosSemana
                   ))}
                 </div>
 
-                <div className="relative bg-black">
-                  {slots.map((slot) => (
-                    <div
-                      key={slot.label}
-                      className="h-14 border-b border-zinc-800/80"
-                    />
-                  ))}
+<div className="relative bg-black">
+  {slots.map((slot) => {
+    const horarioOcupado = itensRenderizados.some((item) => {
+      const inicioSlot = slot.minutos
+      const fimSlot = slot.minutos + intervaloAgenda
+      const inicioItem = horaParaMinutos(item.horario)
+      const fimItem = horaParaMinutos(item.fimLabel)
 
-                  {itensRenderizados.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setModalAgendamento(item)}
-                      className={`absolute left-1 md:left-2 right-1 md:right-2 rounded-xl border px-2 md:px-3 py-1.5 text-left shadow-lg overflow-hidden ${corStatus(item.status)}`}
-                      style={{
-                        top: `${item.top + 1}px`,
-                        height: `${item.height - 2}px`
-                      }}
-                    >
-                      <div className="text-[10px] md:text-xs opacity-90 mb-1 leading-tight">
-                        {item.horario} - {item.fimLabel}
-                      </div>
+      return inicioSlot < fimItem && fimSlot > inicioItem
+    })
 
-                      <div className="font-bold text-sm md:text-base leading-tight break-words">
-                        {item.clientes?.nome || "Cliente"}
-                      </div>
+    return (
+      <div
+        key={slot.label}
+        className="relative h-14 border-b border-zinc-800/80"
+      >
+        {!horarioOcupado && (
+          <button
+            type="button"
+            onClick={() => abrirNovoAgendamento(dataSelecionada, slot.label)}
+            className="absolute inset-0 w-full h-full text-left transition hover:bg-zinc-900/60"
+          />
+        )}
+      </div>
+    )
+  })}
 
-                      <div className="text-xs md:text-sm opacity-90 truncate">
-                        {item.servicos?.nome || "Serviço"}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+  {itensRenderizados.map((item) => (
+    <button
+      key={item.id}
+      onClick={() => setModalAgendamento(item)}
+      className={`absolute left-1 md:left-2 right-1 md:right-2 rounded-xl border px-2 md:px-3 py-1.5 text-left shadow-lg overflow-hidden ${corStatus(item.status)}`}
+      style={{
+        top: `${item.top + 1}px`,
+        height: `${item.height - 2}px`
+      }}
+    >
+      <div className="text-[10px] md:text-xs opacity-90 mb-1 leading-tight">
+        {item.horario} - {item.fimLabel}
+      </div>
+
+      <div className="font-bold text-sm md:text-base leading-tight break-words">
+        {item.clientes?.nome || "Cliente"}
+      </div>
+
+      <div className="text-xs md:text-sm opacity-90 truncate">
+        {item.servicos?.nome || "Serviço"}
+      </div>
+    </button>
+  ))}
+</div>
               </div>
             </div>
           )}
@@ -1029,12 +1091,31 @@ const itensDoDia = agendamentosSemana
                     key={dia.data}
                     className="relative bg-black border-r last:border-r-0 border-zinc-800"
                   >
-                    {slots.map((slot) => (
-                      <div
-                        key={slot.label}
-                        className="h-14 border-b border-zinc-800/80"
-                      />
-                    ))}
+{slots.map((slot) => {
+  const horarioOcupado = dia.itens.some((item) => {
+    const inicioSlot = slot.minutos
+    const fimSlot = slot.minutos + intervaloAgenda
+    const inicioItem = horaParaMinutos(item.horario)
+    const fimItem = horaParaMinutos(item.fimLabel)
+
+    return inicioSlot < fimItem && fimSlot > inicioItem
+  })
+
+  return (
+    <div
+      key={slot.label}
+      className="relative h-14 border-b border-zinc-800/80"
+    >
+      {!horarioOcupado && (
+        <button
+          type="button"
+          onClick={() => abrirNovoAgendamento(dia.data, slot.label)}
+          className="absolute inset-0 w-full h-full text-left transition hover:bg-zinc-900/60"
+        />
+      )}
+    </div>
+  )
+})}
 
                     {dia.itens.map((item) => (
                       <button
@@ -1187,7 +1268,7 @@ const itensDoDia = agendamentosSemana
               onClick={() => navigate("/admin")}
               className="w-full bg-yellow-500 text-black font-bold py-3 rounded-xl"
             >
-              Ir para agenda principal
+              Ir para o dashboard
             </button>
           </div>
         </div>
@@ -1309,14 +1390,13 @@ const itensDoDia = agendamentosSemana
 
               <div>
                 <label className="block text-sm text-zinc-400 mb-2">Serviço</label>
-                <select
-                  value={novoServicoId}
-                  onChange={(e) => {
-                    setNovoServicoId(e.target.value)
-                    setNovoHorarioAgendamento("")
-                  }}
-                  className="w-full p-3 bg-zinc-800 rounded-xl border border-zinc-700"
-                >
+<select
+  value={novoServicoId}
+  onChange={(e) => {
+    setNovoServicoId(e.target.value)
+  }}
+  className="w-full p-3 bg-zinc-800 rounded-xl border border-zinc-700"
+>
                   <option value="">Selecione um serviço</option>
                   {servicos.map((s) => (
                     <option key={s.id} value={s.id}>

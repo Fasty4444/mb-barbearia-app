@@ -15,8 +15,13 @@ const diasSemana = [
 export default function Funcionamento(){
 
   const navigate = useNavigate()
-  const [horarios, setHorarios] = useState([])
+ const [horarios, setHorarios] = useState([])
   const [intervaloAgenda, setIntervaloAgenda] = useState(35)
+  const [popup, setPopup] = useState({
+    aberto: false,
+    tipo: "",
+    mensagem: ""
+  })
 
   async function carregar(){
 
@@ -52,6 +57,22 @@ const padrao = diasSemana.map((_, i) => ({
     setHorarios(copia)
   }
 
+  function abrirPopup(tipo, mensagem) {
+  setPopup({
+    aberto: true,
+    tipo,
+    mensagem
+  })
+}
+
+function fecharPopup() {
+  setPopup({
+    aberto: false,
+    tipo: "",
+    mensagem: ""
+  })
+}
+
 async function salvar(){
 
   console.log("SALVANDO:", horarios)
@@ -62,11 +83,11 @@ async function salvar(){
     .delete()
     .not("id", "is", null)
 
-  if(erroDelete){
-    console.log("ERRO DELETE:", erroDelete)
-    alert("Erro ao limpar dados")
-    return
-  }
+if(erroDelete){
+  console.log("ERRO DELETE:", erroDelete)
+  abrirPopup("erro", "Erro ao limpar os dados atuais.")
+  return
+}
 
   // insere novamente
   const { error: erroInsert } = await supabase
@@ -81,13 +102,13 @@ async function salvar(){
     }))
   )
 
-  if(erroInsert){
-    console.log("ERRO INSERT:", erroInsert)
-    alert("Erro ao salvar")
-    return
-  }
+if(erroInsert){
+  console.log("ERRO INSERT:", erroInsert)
+  abrirPopup("erro", "Erro ao salvar os horários.")
+  return
+}
 
-  alert("Salvo com sucesso!")
+abrirPopup("sucesso", "Horários salvos com sucesso!")
 }
 
   return (
@@ -186,6 +207,38 @@ async function salvar(){
         </button>
 
       </div>
+
+      {popup.aberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className={`h-3 w-3 rounded-full ${
+                  popup.tipo === "sucesso" ? "bg-green-500" : "bg-red-500"
+                }`}
+              />
+              <h2 className="text-lg font-bold text-white">
+                {popup.tipo === "sucesso" ? "Sucesso" : "Erro"}
+              </h2>
+            </div>
+
+            <p className="text-sm text-zinc-300 mb-5">
+              {popup.mensagem}
+            </p>
+
+            <button
+              onClick={fecharPopup}
+              className={`w-full rounded-xl py-3 font-bold transition ${
+                popup.tipo === "sucesso"
+                  ? "bg-green-500 text-black hover:bg-green-400"
+                  : "bg-red-500 text-white hover:bg-red-400"
+              }`}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   )

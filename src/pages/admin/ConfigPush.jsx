@@ -144,7 +144,7 @@ export default function ConfigPush() {
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex.: MB Barbearia"
+              placeholder="Ex.: MB Prime - Barbearia"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 outline-none"
             />
           </div>
@@ -188,7 +188,7 @@ export default function ConfigPush() {
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
             <p className="text-sm text-zinc-400 mb-2">Prévia</p>
             <div className="bg-black border border-zinc-800 rounded-xl p-4">
-              <p className="font-semibold">{titulo || "MB Barbearia"}</p>
+              <p className="font-semibold">{titulo || "MB Prime - Barbearia"}</p>
               <p className="text-zinc-300 mt-1">
                 {mensagem || "Sua mensagem aparecerá aqui."}
               </p>
