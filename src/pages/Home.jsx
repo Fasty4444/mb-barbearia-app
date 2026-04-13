@@ -382,7 +382,7 @@ className="relative z-10 mt-24 flex gap-16 text-center"
 
     <div className="flex justify-center mt-6">
       <a
-        href="https://www.instagram.com/mb_barbearia001/"
+        href="https://www.instagram.com/mbprime_barbearia01/"
         target="_blank"
         rel="noreferrer"
         className="bg-yellow-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-yellow-400 transition"
